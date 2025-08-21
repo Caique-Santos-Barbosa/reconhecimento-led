@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Iniciando build otimizado para Render..."
+echo "🚀 Iniciando build minimalista para Render..."
 
 # Configurar variáveis de ambiente para otimização
 export PIP_NO_CACHE_DIR=1
@@ -13,7 +13,7 @@ python3.11 --version || {
     echo "❌ Python 3.11 não encontrado, tentando Python padrão"
     python3 --version
     python3 -m pip install --upgrade pip setuptools wheel
-    python3 -m pip install --no-cache-dir -r requirements_render.txt
+    python3 -m pip install --no-cache-dir -r requirements_render_minimal.txt
     exit 0
 }
 
@@ -24,8 +24,9 @@ echo "✅ Python 3.11 encontrado, usando para build..."
 echo "📦 Instalando dependências de build..."
 python3.11 -m pip install --upgrade pip setuptools wheel
 
-# Instalar requirements com otimizações
-echo "🔧 Instalando dependências do projeto..."
-python3.11 -m pip install --no-cache-dir --prefer-binary -r requirements_render.txt
+# Instalar requirements minimalistas com otimizações
+echo "🔧 Instalando dependências mínimas do projeto..."
+python3.11 -m pip install --no-cache-dir --prefer-binary -r requirements_render_minimal.txt
 
-echo "✅ Build concluído com sucesso!" 
+echo "✅ Build minimalista concluído com sucesso!"
+echo "📝 NOTA: Reconhecimento facial temporariamente desabilitado para compatibilidade com Render" 

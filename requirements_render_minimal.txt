@@ -1,0 +1,19 @@
+# Dependências mínimas para funcionar no Render
+setuptools>=65.0.0
+wheel>=0.38.0
+pip>=23.0.0
+
+# Flask e WebSockets
+flask
+flask-socketio
+gunicorn
+eventlet
+
+# Bibliotecas básicas
+numpy
+Pillow
+requests
+pyserial
+
+# NOTA: opencv-python e face-recognition removidos temporariamente
+# para funcionar no plano gratuito do Render 
