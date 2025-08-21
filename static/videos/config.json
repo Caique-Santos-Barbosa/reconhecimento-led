@@ -1,0 +1,33 @@
+{
+  "playlist": [
+    "static/videos/videos/1_convertido.mp4",
+    "static/videos/videos/Logo HDT Looping.mp4",
+    "static/videos/videos/2_convertido.mp4",
+    "static/videos/videos/Logo HDT V2.mp4",
+    "static/videos/videos/3_convertido.mp4",
+    "static/videos/videos/Logo Huawei Looping.mp4",
+    "static/videos/videos/Logo Huawei V2.mp4"
+  ],
+  "schedule": {
+    "monday": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "tuesday": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "wednesday": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "thursday": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "friday": {
+      "start": "09:00",
+      "end": "18:00"
+    }
+  }
+}

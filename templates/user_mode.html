@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconhecimento Facial - Acesso</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#1a237e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 60% 40%, #3a4a7a 60%, #1a237e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.5s;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100vw;
+        }
+        .circle {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.02);
+            border-radius: 50%;
+            box-shadow: 0 0 32px 4px #0004;
+            transition: box-shadow 0.5s, border 0.5s, background 0.5s;
+        }
+        .circle.neutral {
+            border: 4px solid #4fc3f7;
+            box-shadow: 0 0 32px 4px #4fc3f7aa;
+        }
+        .circle.success {
+            border: 4px solid #43ea7f;
+            box-shadow: 0 0 32px 4px #43ea7faa;
+            background: rgba(67,234,127,0.08);
+        }
+        .circle.fail {
+            border: 4px solid #ff5252;
+            box-shadow: 0 0 32px 4px #ff5252aa;
+            background: rgba(255,82,82,0.08);
+        }
+        .face-svg {
+            width: 120px;
+            height: 120px;
+            display: block;
+        }
+        .video-cam {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0.55;
+            z-index: 1;
+        }
+        .circle-anim {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .status-message {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 8px #0008;
+            min-height: 32px;
+            transition: color 0.5s;
+        }
+        .status-message.success { color: #43ea7f; }
+        .status-message.fail { color: #ff5252; }
+        .status-message.neutral { color: #4fc3f7; }
+        .datetime {
+            font-size: 1.1rem;
+            color: #e0e0e0;
+            margin-bottom: 8px;
+            text-align: center;
+            text-shadow: 0 2px 8px #0008;
+        }
+        .footer {
+            text-align: center;
+            color: #b0b0b0;
+            font-size: 0.95rem;
+            margin-top: 32px;
+        }
+        @media (max-width: 600px) {
+            .circle {
+                width: 90vw;
+                height: 90vw;
+                max-width: 260px;
+                max-height: 260px;
+            }
+            .face-svg {
+                width: 70vw;
+                height: 70vw;
+                max-width: 120px;
+                max-height: 120px;
+            }
+        }
+        .bloqueado-box {
+            display: none !important;
+            position: fixed;
+            z-index: 9999;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(30, 40, 100, 0.85);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .bloqueado-content {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 32px #0002;
+            padding: 2.5rem 2rem;
+            max-width: 95vw;
+            min-width: 260px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            .bloqueado-content {
+                padding: 1.2rem 0.5rem;
+            }
+            .bloqueado-content h2 {
+                font-size: 1.3rem;
+            }
+            .bloqueado-content .alert {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bloqueado-box" style="display:none;">
+        <div class="bloqueado-content">
+            <h2>Sistema Bloqueado</h2>
+            <div class="alert alert-danger">Sistema bloqueado imediatamente pelo administrador.</div>
+            <p>Entre em contato com o fornecedor para renovar a licença e continuar utilizando o sistema do painel de LED e o reconhecimento facial para abertura da porta.</p>
+        </div>
+    </div>
+    <img src="/static/logo.png" alt="Logo HDT" style="position:fixed;top:18px;left:18px;height:48px;width:auto;z-index:100;border-radius:12px;box-shadow:0 2px 8px #0003;">
+    <div class="container">
+        <div id="circle" class="circle neutral">
+            <video id="video" class="video-cam" autoplay playsinline muted></video>
+            <svg class="circle-anim" viewBox="0 0 260 260">
+                <circle cx="130" cy="130" r="120" stroke="#fff6" stroke-width="2" fill="none" stroke-dasharray="20 10"/>
+                <circle cx="130" cy="130" r="110" stroke="#fff2" stroke-width="1" fill="none" stroke-dasharray="8 8"/>
+            </svg>
+            <svg class="face-svg" viewBox="0 0 64 64" fill="none">
+                <ellipse cx="32" cy="24" rx="16" ry="18" stroke="#fff" stroke-width="2"/>
+                <ellipse cx="32" cy="54" rx="14" ry="6" stroke="#fff" stroke-width="2"/>
+                <circle cx="24" cy="22" r="2" fill="#fff"/>
+                <circle cx="40" cy="22" r="2" fill="#fff"/>
+                <path d="M28 32 Q32 36 36 32" stroke="#fff" stroke-width="2" fill="none"/>
+            </svg>
+        </div>
+        <div class="datetime" id="datetime"></div>
+        <div id="status-message" class="status-message neutral">Aguardando rosto...</div>
+        <div class="footer">
+            &copy; 2025 HDT Energy | Sistema de Reconhecimento Facial
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix"></script>
+    <script>
+        // Relógio/data
+        function updateDateTime() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const date = now.toLocaleDateString('pt-BR');
+            document.getElementById('datetime').textContent = `${h}:${m}  |  ${date}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // PWA: registra o service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/service-worker.js');
+            });
+        }
+
+        // Inicializa a câmera
+        const video = document.getElementById('video');
+        navigator.mediaDevices && navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                setStatus('Erro ao acessar a câmera', 'fail');
+            });
+
+        // Variáveis para controle de detecção
+        let bodyPixModel = null;
+        let isProcessing = false;
+        let lastDetectionTime = 0;
+        const DETECTION_COOLDOWN = 2000; // 2 segundos entre detecções
+
+        // Carregar modelo BodyPix
+        async function carregarModeloBodyPix() {
+            try {
+                bodyPixModel = await bodyPix.load({
+                    architecture: 'MobileNetV1',
+                    outputStride: 16,
+                    multiplier: 0.75,
+                    quantBytes: 2
+                });
+                console.log('Modelo BodyPix carregado com sucesso');
+            } catch (error) {
+                console.error('Erro ao carregar modelo BodyPix:', error);
+            }
+        }
+
+        // Verificar se há silhueta humana no frame
+        async function verificarSilhuetaHumana(video) {
+            if (!bodyPixModel || isProcessing) return false;
+            
+            try {
+                isProcessing = true;
+                const segmentation = await bodyPixModel.segmentPerson(video);
+                const pixels = segmentation.data;
+                const totalPixels = pixels.length;
+                const pessoaPixels = pixels.filter(p => p === 1).length;
+                const percentualPessoa = (pessoaPixels / totalPixels) * 100;
+                
+                isProcessing = false;
+                return percentualPessoa > 5; // Retorna true se mais de 5% do frame for uma pessoa
+            } catch (error) {
+                console.error('Erro na detecção de silhueta:', error);
+                isProcessing = false;
+                return false;
+            }
+        }
+
+        // Função para capturar frames e enviar para o backend
+        let sending = false;
+        async function sendFrame() {
+            if (sending || isProcessing) return;
+            
+            const now = Date.now();
+            if (now - lastDetectionTime < DETECTION_COOLDOWN) return;
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Verificar se há silhueta humana antes de enviar
+                const temSilhueta = await verificarSilhuetaHumana(video);
+                if (!temSilhueta) return;
+                
+                sending = true;
+                const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                const response = await fetch('/api/user_recognition', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataURL })
+                });
+                
+                const data = await response.json();
+                updateUI(data);
+                lastDetectionTime = now;
+                sending = false;
+            } catch (e) {
+                sending = false;
+                console.error('Erro ao processar frame:', e);
+            }
+        }
+
+        // Carregar modelo ao iniciar
+        carregarModeloBodyPix();
+
+        // Ajustar intervalo de envio de frames
+        setInterval(sendFrame, 300); // Verifica a cada 300ms
+
+        // Variável para controlar o estado atual
+        let estadoAtual = 'neutral';
+        let timeoutId = null;
+
+        function updateUI(data) {
+            // Se já estiver em timeout de "usuário desconhecido", ignora novas detecções
+            if (timeoutId !== null) return;
+
+            if (data.status === 'success') {
+                estadoAtual = 'success';
+                setStatus(`Bem-vindo, ${data.name}`, 'success');
+                // Manter o estado de sucesso por 5 segundos
+                setTimeout(() => {
+                    estadoAtual = 'neutral';
+                    setStatus('Aguardando rosto...', 'neutral');
+                }, 5000);
+            } else if (data.status === 'fail' && estadoAtual !== 'fail') {
+                estadoAtual = 'fail';
+                setStatus('Usuário desconhecido', 'fail');
+                // Voltar para "aguardando rosto" após 5 segundos
+                timeoutId = setTimeout(() => {
+                    estadoAtual = 'neutral';
+                    setStatus('Aguardando rosto...', 'neutral');
+                    timeoutId = null;
+                }, 5000);
+            } else if (data.status === 'neutral' && estadoAtual === 'neutral') {
+                setStatus('Aguardando rosto...', 'neutral');
+            }
+        }
+
+        // Função para atualizar status
+        function setStatus(msg, type) {
+            const status = document.getElementById('status-message');
+            const circle = document.getElementById('circle');
+            status.textContent = msg;
+            status.className = 'status-message ' + type;
+            circle.className = 'circle ' + type;
+            if (type === 'success') {
+                document.body.style.background = 'radial-gradient(circle at 60% 40%, #43ea7f 60%, #1a237e 100%)';
+            } else if (type === 'fail') {
+                document.body.style.background = 'radial-gradient(circle at 60% 40%, #ff5252 60%, #1a237e 100%)';
+            } else {
+                document.body.style.background = 'radial-gradient(circle at 60% 40%, #3a4a7a 60%, #1a237e 100%)';
+            }
+        }
+
+        // WebSocket para receber evento de boas-vindas
+        const socket = io();
+        let lastWelcomeTime = 0;
+        socket.on('boas_vindas', data => {
+            if (data && data.nome) {
+                const now = Date.now();
+                if (now - lastWelcomeTime > 5000) {
+                    lastWelcomeTime = now;
+                    const msg = `Seja bem-vindo à HDT, ${data.nome}!`;
+                    if ('speechSynthesis' in window) {
+                        const utter = new SpeechSynthesisUtterance(msg);
+                        utter.lang = 'pt-BR';
+                        utter.rate = 1;
+                        window.speechSynthesis.speak(utter);
+                    } else {
+                        alert(msg);
+                    }
+                }
+            }
+        });
+
+        let bloqueioInterval = null;
+
+        function mostrarBloqueio() {
+            document.querySelector('.bloqueado-box').style.display = 'flex';
+            if (!bloqueioInterval) {
+                bloqueioInterval = setInterval(function() { window.location.reload(); }, 5000);
+            }
+        }
+        function esconderBloqueio() {
+            document.querySelector('.bloqueado-box').style.display = 'none';
+            if (bloqueioInterval) {
+                clearInterval(bloqueioInterval);
+                bloqueioInterval = null;
+            }
+        }
+        // Checagem inicial
+        async function checarLicencaUserMode() {
+            try {
+                const res = await fetch('/api/licenca_status');
+                const data = await res.json();
+                if (data.status !== 'ok') {
+                    mostrarBloqueio();
+                } else {
+                    esconderBloqueio();
+                }
+            } catch (e) {}
+        }
+        checarLicencaUserMode();
+        // SocketIO para resposta instantânea
+        socket.on('licenca_bloqueada', mostrarBloqueio);
+        socket.on('licenca_desbloqueada', function() {
+            esconderBloqueio();
+            // Aqui você pode retomar funcionalidades do user_mode se necessário
+        });
+
+        function iniciarPlaylist() {
+            if (playlist.length === 0) return;
+            let index = 0;
+            const video = document.getElementById('videoPlayer');
+            let volumeCheckInterval;
+            
+            // Função para forçar volume
+            function forcarVolume(volume) {
+                if (volume !== undefined) {
+                    video.volume = volume;
+                    // Força novamente após um pequeno delay para garantir
+                    setTimeout(() => {
+                        video.volume = volume;
+                    }, 100);
+                }
+            }
+
+            // Função para sincronizar volume com admin_mode
+            async function sincronizarVolume() {
+                try {
+                    const response = await fetch('/api/volume_config');
+                    const data = await response.json();
+                    if (data.volume !== undefined) {
+                        const volumeDecimal = data.volume / 100;
+                        forcarVolume(volumeDecimal);
+                        localStorage.setItem('videoVolume', volumeDecimal);
+                    }
+                } catch (error) {
+                    console.error('Erro ao sincronizar volume:', error);
+                }
+            }
+
+            // Função para garantir volume consistente
+            function setVolumeConsistente() {
+                const savedVolume = localStorage.getItem('videoVolume');
+                if (savedVolume !== null) {
+                    forcarVolume(parseFloat(savedVolume));
+                }
+            }
+
+            // Salvar volume quando alterado
+            video.addEventListener('volumechange', function() {
+                const currentVolume = video.volume;
+                localStorage.setItem('videoVolume', currentVolume);
+                // Força o volume novamente após a mudança
+                setTimeout(() => {
+                    video.volume = currentVolume;
+                }, 100);
+            });
+
+            // Garantir volume consistente em vários eventos
+            const eventos = ['play', 'playing', 'loadedmetadata', 'canplay', 'loadeddata', 'timeupdate'];
+            eventos.forEach(evento => {
+                video.addEventListener(evento, setVolumeConsistente);
+            });
+
+            // Verificação contínua do volume
+            function iniciarVerificacaoVolume() {
+                if (volumeCheckInterval) {
+                    clearInterval(volumeCheckInterval);
+                }
+                volumeCheckInterval = setInterval(() => {
+                    const savedVolume = localStorage.getItem('videoVolume');
+                    if (savedVolume !== null && video.volume !== parseFloat(savedVolume)) {
+                        forcarVolume(parseFloat(savedVolume));
+                    }
+                }, 1000); // Verifica a cada segundo
+            }
+
+            // Sincronizar volume a cada 5 segundos
+            setInterval(sincronizarVolume, 5000);
+
+            // Aplicar volume inicial e iniciar verificações
+            sincronizarVolume();
+            iniciarVerificacaoVolume();
+
+            video.src = playlist[index];
+            setVolumeConsistente();
+            video.play();
+
+            video.addEventListener('ended', function() {
+                index = (index + 1) % playlist.length;
+                video.src = playlist[index];
+                setVolumeConsistente();
+                video.play();
+            });
+
+            // Limpar intervalo quando a página for fechada
+            window.addEventListener('beforeunload', () => {
+                if (volumeCheckInterval) {
+                    clearInterval(volumeCheckInterval);
+                }
+            });
+        }
+
+        // Inicializar com status neutro
+        setStatus('Aguardando rosto...', 'neutral');
+    </script>
+</body>
+</html> 

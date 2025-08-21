@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema Bloqueado</title>
+  <style>
+    body { background: #232946; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .bloqueado-box { background: #fff; color: #232946; padding: 2.5rem 2rem; border-radius: 12px; box-shadow: 0 4px 32px #0002; min-width: 340px; text-align: center; }
+    .bloqueado-box h2 { margin-bottom: 1.5rem; }
+    .bloqueado-box .alert { font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <div class="bloqueado-box">
+    <h2>Sistema Bloqueado</h2>
+    <div class="alert alert-danger">Sistema bloqueado imediatamente pelo administrador.</div>
+    <p>Entre em contato com o fornecedor para renovar a licença e continuar utilizando o sistema do painel de LED e o reconhecimento facial para abertura da porta.</p>
+  </div>
+  <script>
+    setInterval(function() {
+      window.location.reload();
+    }, 5000); // 5 segundos
+  </script>
+</body>
+</html> 

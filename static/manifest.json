@@ -1,0 +1,21 @@
+{
+  "name": "Reconhecimento Facial HDT",
+  "short_name": "Facial HDT",
+  "start_url": "/user_mode",
+  "display": "standalone",
+  "background_color": "#f4f8fb",
+  "theme_color": "#1a237e",
+  "description": "Sistema de Reconhecimento Facial para controle de acesso.",
+  "icons": [
+    {
+      "src": "/static/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

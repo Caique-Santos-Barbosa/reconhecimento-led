@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - HDT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a237e;
+            --secondary-color: #3a4a7a;
+            --accent-color: #43ea7f;
+            --text-color: #333;
+            --bg-color: #f5f6fa;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            max-width: 1400px;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1rem 1.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .video-preview {
+            width: 100%;
+            max-height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .video-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .video-item:hover {
+            background: #f8f9fa;
+        }
+
+        .video-item.dragging {
+            opacity: 0.5;
+        }
+
+        .video-item .drag-handle {
+            cursor: move;
+            padding: 0.5rem;
+            color: #666;
+        }
+
+        .video-item .video-info {
+            flex: 1;
+            margin: 0 1rem;
+        }
+
+        .video-item .video-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .custom-toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .volume-control input[type="range"] {
+            flex: 1;
+        }
+
+        .volume-value {
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .playlist-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: #f8f9fa;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent-color);
+            background: #e8f5e9;
+        }
+
+        .video-preview.expanded {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw !important;
+            height: 80vh !important;
+            max-width: 100vw;
+            max-height: 100vh;
+            z-index: 2000;
+            background: #000;
+            box-shadow: 0 0 32px 8px #000a;
+            border-radius: 16px;
+        }
+        #videoPreviewOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85);
+            z-index: 1999;
+        }
+    </style>
+</head>
+<body>
+  <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.7); z-index:9999; align-items:center; justify-content:center;">
+    <div style="font-size:2rem; color:#333;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+            </div>
+    <div class="d-flex">
+        <!-- MENU LATERAL -->
+        <nav id="sidebarMenu" class="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white" style="width: 260px; min-height: 100vh;">
+            <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+                <span class="fs-4"><i class="fas fa-cogs me-2"></i>Admin HDT</span>
+            </a>
+            <hr>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item"><a href="#usuarios" class="nav-link text-white active" onclick="showSection('usuarios')"><i class="fas fa-users me-2"></i>Usuários</a></li>
+                <li><a href="#videos" class="nav-link text-white" onclick="showSection('videos')"><i class="fas fa-video me-2"></i>Vídeos de Fundo</a></li>
+                <li id="licenciamentoMenu" style="display:none;"><a href="#licenciamento" class="nav-link text-white" onclick="showSection('licenciamento')"><i class="fas fa-id-badge me-2"></i>Licenciamento</a></li>
+                <li><a href="/static/abrir_porta.zip" class="nav-link text-white"><i class="fas fa-download me-2"></i>Baixar Utilitário de Abertura (.zip)</a></li>
+            </ul>
+            <hr>
+            <div class="text-center small">&copy; 2024 HDT</div>
+        </nav>
+        <!-- CONTEÚDO PRINCIPAL -->
+        <div class="container-fluid" style="margin-left: 260px;">
+            <div class="header d-flex justify-content-between align-items-center mt-3 mb-4">
+                <h1>Painel Administrativo</h1>
+                <button id="btnAbrirPorta" class="btn btn-success" disabled>
+                    <i class="fas fa-door-open"></i> Abrir Porta
+                </button>
+            </div>
+            <!-- No topo do conteúdo principal, logo após o header -->
+            <div id="licencaStatusBox" class="mb-3"></div>
+            <script>
+            let u = null;
+            let removerFoto = false;
+            let removerMusica = false;
+            let removerFundo = false;
+            async function atualizarLicencaStatus() {
+              try {
+                const res = await fetch('/api/licenca_status');
+                const data = await res.json();
+                const box = document.getElementById('licencaStatusBox');
+                if (!box) return;
+                let html = '';
+                if (data.status === 'ok') {
+                  // Contagem regressiva se for data_fixa ou dias
+                  if (data.licenca && (data.licenca.tipo === 'data_fixa' || data.licenca.tipo === 'dias')) {
+                    html = `<div class='alert alert-success'><b>Licença:</b> <span id='timerLicenca'></span></div>`;
+                    box.innerHTML = html;
+                    iniciarContagemLicenca(data.licenca);
+                    return;
+                  } else {
+                    html = `<div class='alert alert-success'><b>Licença:</b> ${data.mensagem}</div>`;
+                  }
+                } else if (data.mensagem && data.mensagem.includes('bloqueado')) {
+                  html = `<div class='alert alert-danger'><b>Licença:</b> Sistema bloqueado pelo administrador. Entre em contato com o mesmo para liberar a licença. <a href="#licenciamento" onclick="showSection('licenciamento')" style="font-weight:bold;text-decoration:underline;color:inherit;">Clique aqui para ver os dados de contato</a></div>`;
+                } else {
+                  html = `<div class='alert alert-danger'><b>Licença:</b> ${data.mensagem}</div>`;
+                }
+                box.innerHTML = html;
+
+                // Mostrar/ocultar menu Licenciamento
+                const licMenu = document.getElementById('licenciamentoMenu');
+                if (licMenu) {
+                  licMenu.style.display = (data.mensagem && data.mensagem.includes('bloqueado')) ? '' : 'none';
+                }
+              } catch (e) {}
+            }
+
+            function iniciarContagemLicenca(licenca) {
+              function atualizar() {
+                let totalSegundos = 0;
+                let label = '';
+                if (licenca.tipo === 'data_fixa' && licenca.data_expiracao) {
+                  const exp = new Date(licenca.data_expiracao + 'T23:59:59');
+                  const agora = new Date();
+                  totalSegundos = Math.floor((exp - agora) / 1000);
+                  label = 'até ' + exp.toLocaleDateString();
+                } else if (licenca.tipo === 'dias' && licenca.segundos_restantes !== undefined) {
+                  totalSegundos = licenca.segundos_restantes;
+                  label = '';
+                }
+                if (totalSegundos < 0) totalSegundos = 0;
+                const dias = Math.floor(totalSegundos / 86400);
+                const horas = Math.floor((totalSegundos % 86400) / 3600);
+                const minutos = Math.floor((totalSegundos % 3600) / 60);
+                const segundos = totalSegundos % 60;
+                let texto = '';
+                if (label) texto += `Válida ${label} <br>`;
+                texto += `Tempo restante: <b>${dias}d ${horas}h ${minutos}m ${segundos}s</b>`;
+                const timer = document.getElementById('timerLicenca');
+                if (timer) timer.innerHTML = texto;
+                if (totalSegundos > 0) setTimeout(() => { licenca.segundos_restantes--; atualizar(); }, 1000);
+              }
+              atualizar();
+            }
+            document.addEventListener('DOMContentLoaded', atualizarLicencaStatus);
+            </script>
+            <!-- Seção Usuários -->
+            <div id="section-usuarios" class="admin-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <input type="text" id="userSearch" class="form-control w-auto" style="max-width:320px;" placeholder="Buscar usuário por nome ou email...">
+                    <div class="d-flex align-items-center">
+                        <div id="userPagination" class="me-2"></div>
+                        <button class="btn btn-primary" onclick="showNewUserModal()">
+                            <i class="fas fa-user-plus"></i> Novo Usuário
+                        </button>
+        </div>
+            </div>
+                <div class="users-grid" id="usersGrid"><!-- Usuários serão carregados aqui --></div>
+        </div>
+            <!-- Seção Vídeos -->
+            <div id="section-videos" class="admin-section" style="display:none;">
+                <div class="card">
+                    <div class="card-header" id="headingVideos" style="background: linear-gradient(90deg, #283e8d 0%, #3a4e9e 100%); color: #fff; cursor:default;">
+                        <h3 class="mb-0"><i class="fas fa-video"></i> Vídeos de Fundo</h3>
+        </div>
+                    <div id="collapseVideos" class="collapse show" aria-labelledby="headingVideos" data-bs-parent="#section-videos" style="display:block;">
+                        <div class="card-body">
+                            <div class="accordion mt-4" id="accordionVideos">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingListaVideos">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseListaVideos" aria-expanded="false" aria-controls="collapseListaVideos">
+                                            Vídeos de Fundo
+                                        </button>
+                                    </h2>
+                                    <div id="collapseListaVideos" class="accordion-collapse collapse" aria-labelledby="headingListaVideos" data-bs-parent="#accordionVideos">
+                                        <div class="accordion-body">
+                                            <div class="playlist-controls">
+                                                <button class="btn btn-outline-primary" onclick="selecionarTodos()">
+                                                    <i class="fas fa-check-double"></i> Selecionar Todos
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="limparSelecao()">
+                                                    <i class="fas fa-times"></i> Limpar Seleção
+                                                </button>
+    </div>
+                                            <div class="upload-area" id="uploadArea" onclick="document.getElementById('uploadVideo').click()">
+                                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                                <p>Arraste vídeos aqui ou clique para selecionar</p>
+                                                <input type="file" id="uploadVideo" accept="video/*" multiple style="display: none" onchange="uploadNovoVideo(this)">
+            </div>
+                                            <div id="listaVideos" class="mt-3"></div>
+                                            <button class="btn btn-primary w-100 mt-3" onclick="salvarPlaylistVideos()">
+                                                <i class="fas fa-save"></i> Salvar Playlist
+                                            </button>
+        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingPlaylist">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePlaylist" aria-expanded="false" aria-controls="collapsePlaylist">
+                                            Playlist de Reprodução
+                                        </button>
+                                    </h2>
+                                    <div id="collapsePlaylist" class="accordion-collapse collapse" aria-labelledby="headingPlaylist" data-bs-parent="#accordionVideos">
+                                        <div class="accordion-body">
+                                            <ul id="playlistAtual" class="list-group"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingVolume">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVolume" aria-expanded="false" aria-controls="collapseVolume">
+                                            Controles de Volume
+                                        </button>
+                                    </h2>
+                                    <div id="collapseVolume" class="accordion-collapse collapse" aria-labelledby="headingVolume" data-bs-parent="#accordionVideos">
+                                        <div class="accordion-body">
+                                            <div class="volume-control">
+                                                <label for="volumeVideos">Vídeos de Fundo</label>
+                                                <input type="range" class="form-range" id="volumeVideos" min="0" max="100" value="100">
+                                                <span class="volume-value" id="volumeVideosValue">100%</span>
+                                            </div>
+                                            <div class="volume-control">
+                                                <label for="volumeMusicas">Músicas de Usuários</label>
+                                                <input type="range" class="form-range" id="volumeMusicas" min="0" max="100" value="100">
+                                                <span class="volume-value" id="volumeMusicasValue">100%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingHorario">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHorario" aria-expanded="false" aria-controls="collapseHorario">
+                                            Horário dos Vídeos
+                                        </button>
+                                    </h2>
+                                    <div id="collapseHorario" class="accordion-collapse collapse" aria-labelledby="headingHorario" data-bs-parent="#accordionVideos">
+                                        <div class="accordion-body">
+                                            <div class="mb-3">
+                                                <label for="horaInicioVideos">Início:</label>
+                                                <input type="time" id="horaInicioVideos" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="horaFimVideos">Fim:</label>
+                                                <input type="time" id="horaFimVideos" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Dias da Semana:</label>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="0" id="domingo"><label class="form-check-label" for="domingo">Dom</label></div>
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="1" id="segunda"><label class="form-check-label" for="segunda">Seg</label></div>
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="2" id="terca"><label class="form-check-label" for="terca">Ter</label></div>
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="3" id="quarta"><label class="form-check-label" for="quarta">Qua</label></div>
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="4" id="quinta"><label class="form-check-label" for="quinta">Qui</label></div>
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="5" id="sexta"><label class="form-check-label" for="sexta">Sex</label></div>
+                                                    <div class="form-check"><input type="checkbox" class="form-check-input diaSemana" value="6" id="sabado"><label class="form-check-label" for="sabado">Sáb</label></div>
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-primary w-100" onclick="salvarHorarioVideos()">
+                                                <i class="fas fa-save"></i> Salvar Horários
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingDebug">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDebug" aria-expanded="false" aria-controls="collapseDebug">
+                                            Debug do Painel LED
+                                        </button>
+                                    </h2>
+                                    <div id="collapseDebug" class="accordion-collapse collapse" aria-labelledby="headingDebug" data-bs-parent="#accordionVideos">
+                                        <div class="accordion-body">
+                                            <pre id="painelDebugInfo" style="font-size:1.1em; background:#f8f9fa; border-radius:8px; padding:18px; min-height:120px;">Carregando status do painel...</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+        </div>
+        </div>
+            </div>
+            <!-- Seção Download -->
+            <div id="section-download" class="admin-section" style="display:none;">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0"><i class="fas fa-download"></i> Download do Sistema (Painel LED)</h3>
+        </div>
+                    <div class="card-body">
+                        <p>Baixe o arquivo <b>IniciarPainelLED.bat</b> e coloque-o na pasta de inicialização automática do Windows (<b>shell:startup</b>) para que o painel LED seja exibido automaticamente ao ligar o computador.</p>
+                        <ol>
+                            <li>Clique no botão abaixo para baixar o arquivo .bat.</li>
+                            <li>Pressione <b>Win + R</b>, digite <b>shell:startup</b> e pressione Enter.</li>
+                            <li>Copie o arquivo <b>IniciarPainelLED.bat</b> para a pasta que abrir.</li>
+                            <li>Pronto! O painel será iniciado automaticamente ao ligar o computador.</li>
+                        </ol>
+                        <button class="btn btn-success" onclick="baixarBatPainel()"><i class="fas fa-download"></i> Baixar IniciarPainelLED.bat</button>
+                        <pre class="mt-4 bg-light p-3 rounded border">@echo off
+start chrome.exe ^
+  --kiosk ^
+  --autoplay-policy=no-user-gesture-required ^
+  --disable-features=AutoplayIgnoreWebAudio ^
+  --use-fake-ui-for-media-stream ^
+  --no-sandbox ^
+  --disable-infobars ^
+  --disable-session-crashed-bubble ^
+  https://192.168.24.154:5000/painel
+</pre>
+        </div>
+    </div>
+            </div>
+            <!-- Seção Licenciamento -->
+            <div id="section-licenciamento" class="admin-section" style="display:none;">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h3 class="mb-0"><i class="fas fa-id-badge"></i> Licenciamento</h3>
+                    </div>
+                    <div class="card-body text-center">
+                        <div id="licenciamentoContato" class="text-center"></div>
+                        <script>
+                        async function atualizarLicenciamentoContato() {
+                          const box = document.getElementById('licenciamentoContato');
+                          if (!box) return;
+                          try {
+                            const res = await fetch('/api/contato_licenciamento');
+                            const c = await res.json();
+                            let html = '';
+                            html += `<img src="${c.foto}" alt="Foto do fornecedor" class="rounded-circle mb-3" style="width:100px;height:100px;object-fit:cover;border:3px solid #25d366;">`;
+                            html += `<h5 class="mb-2">${c.nome || ''}</h5>`;
+                            html += `<p class="mb-2">Para renovar ou liberar sua licença, entre em contato:</p>`;
+                            if (c.whatsapp) html += `<a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}" target="_blank" class="btn btn-success mb-2 w-100"><i class="fab fa-whatsapp"></i> WhatsApp: ${c.whatsapp}</a>`;
+                            if (c.email) html += `<div class="mb-2"><i class="fas fa-envelope"></i> Email: ${c.email}</div>`;
+                            if (c.github) html += `<div><i class="fas fa-globe"></i> GitHub: <a href="${c.github}" target="_blank">${c.github.replace('https://','')}</a></div>`;
+                            if (c.linkedin) html += `<div><i class="fab fa-linkedin"></i> LinkedIn: <a href="${c.linkedin}" target="_blank">${c.linkedin.replace('https://','')}</a></div>`;
+                            if (c.observacoes) html += `<div class="mt-2"><i class="fas fa-info-circle"></i> ${c.observacoes}</div>`;
+                            box.innerHTML = html;
+                          } catch (e) { box.innerHTML = '<div class="alert alert-danger">Erro ao carregar contato do fornecedor.</div>'; }
+                        }
+                        document.addEventListener('DOMContentLoaded', atualizarLicenciamentoContato);
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE USUÁRIO -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="userModalLabel">Novo Usuário</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <form id="userForm">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="userNome" class="form-label">Nome</label>
+                  <input type="text" class="form-control" id="userNome" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="userEmail" class="form-label">Email</label>
+                  <input type="email" class="form-control" id="userEmail" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="userCargo" class="form-label">Cargo</label>
+                  <input type="text" class="form-control" id="userCargo">
+                </div>
+                <div class="col-md-6">
+                  <label for="userFoto" class="form-label">Foto</label>
+                  <input type="file" class="form-control" id="userFoto" accept="image/*">
+                  <div id="userFotoPreview" class="mt-2"></div>
+                  <button type="button" class="btn btn-outline-danger btn-sm mt-1" id="btnRemoverFoto" style="display:none;"><i class="fas fa-trash"></i> Remover Foto</button>
+                </div>
+                <div class="col-md-6">
+                  <label for="userMusica" class="form-label">Música Personalizada</label>
+                  <input type="file" class="form-control" id="userMusica" accept="audio/*">
+                  <div id="userMusicaPreview" class="mt-2"></div>
+                  <button type="button" class="btn btn-outline-danger btn-sm mt-1" id="btnRemoverMusica" style="display:none;"><i class="fas fa-trash"></i> Remover Música</button>
+                </div>
+                <div class="col-md-6">
+                  <label for="userFundo" class="form-label">Fundo Personalizado</label>
+                  <input type="file" class="form-control" id="userFundo" accept="image/*,video/*">
+                  <div id="userFundoPreview" class="mt-2"></div>
+                  <button type="button" class="btn btn-outline-danger btn-sm mt-1" id="btnRemoverFundo" style="display:none;"><i class="fas fa-trash"></i> Remover Fundo</button>
+                </div>
+                <div class="col-md-6">
+                  <label for="userTipoFundo" class="form-label">Tipo de Fundo</label>
+                  <select class="form-select" id="userTipoFundo">
+                    <option value="imagem">Imagem</option>
+                    <option value="video">Vídeo</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="userPermissoes" class="form-label">Permissões</label>
+                  <select class="form-select" id="userPermissoes">
+                    <option value="acesso_24h">Acesso 24h</option>
+                    <option value="acesso_restrito">Acesso Restrito</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="userHorarioInicio" class="form-label">Horário Início</label>
+                  <input type="time" class="form-control" id="userHorarioInicio">
+                </div>
+                <div class="col-md-6">
+                  <label for="userHorarioFim" class="form-label">Horário Fim</label>
+                  <input type="time" class="form-control" id="userHorarioFim">
+                </div>
+              </div>
+                </form>
+            </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary" form="userForm">Salvar</button>
+            <button type="button" class="btn btn-info" id="btnSimularLeitura" style="margin-right: auto;">Simular Leitura de Tela</button>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div id="videoPreviewOverlay"></div>
+
+    <!-- Toast de notificação -->
+    <div id="toastPorta" class="toast align-items-center text-bg-success border-0 position-fixed top-0 end-0 m-4" role="alert" aria-live="assertive" aria-atomic="true" style="z-index:9999; min-width: 220px; display:none;">
+      <div class="d-flex">
+        <div class="toast-body" id="toastPortaMsg">
+          Porta aberta com sucesso!
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+      // Menu lateral navegação
+      function showSection(sec) {
+        document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+        document.getElementById('section-' + sec).style.display = 'block';
+        document.querySelectorAll('#sidebarMenu .nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelector(`#sidebarMenu .nav-link[href="#${sec}"]`).classList.add('active');
+        if (sec === 'usuarios') carregarUsuarios();
+        if (sec === 'videos') carregarListaVideos();
+      }
+      // Modal de usuário
+      function showNewUserModal() {
+        document.getElementById('userForm').reset();
+        document.getElementById('userEmail').disabled = false;
+        document.getElementById('userModalLabel').textContent = 'Novo Usuário';
+        document.getElementById('userForm').onsubmit = async function(ev) {
+          ev.preventDefault();
+          const payload = {
+            nome: document.getElementById('userNome').value,
+            email: document.getElementById('userEmail').value,
+            cargo: document.getElementById('userCargo').value,
+            permissoes: {
+              acesso_24h: document.getElementById('userPermissoes').value === 'acesso_24h',
+              acesso_restrito: document.getElementById('userPermissoes').value === 'acesso_restrito',
+              horario_inicio: document.getElementById('userHorarioInicio').value,
+              horario_fim: document.getElementById('userHorarioFim').value
+            }
+          };
+          try {
+            const res = await fetch('/api/usuarios', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+              showToast('Usuário cadastrado com sucesso!');
+              bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+              carregarUsuarios();
+            } else {
+              showToast(data.message || 'Erro ao cadastrar usuário', 'error');
+            }
+          } catch (e) {
+            showToast('Erro ao cadastrar usuário', 'error');
+          }
+        };
+        var userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        userModal.show();
+      }
+      // Funções de UI
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = 'custom-toast';
+        toast.innerHTML = `
+          <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'}"></i>
+          <span>${message}</span>
+        `;
+        document.getElementById('toastContainer').appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+
+      function showLoading() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+      }
+
+      function hideLoading() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }
+
+      // Funções de Volume
+      function updateVolumeDisplay(input, valueDisplay) {
+        document.getElementById(valueDisplay).textContent = `${input.value}%`;
+      }
+
+      document.getElementById('volumeVideos').addEventListener('input', function() {
+        updateVolumeDisplay(this, 'volumeVideosValue');
+        salvarVolumes();
+      });
+
+      document.getElementById('volumeMusicas').addEventListener('input', function() {
+        updateVolumeDisplay(this, 'volumeMusicasValue');
+        salvarVolumes();
+      });
+
+      // Funções de Playlist
+      function selecionarTodos() {
+        document.querySelectorAll('.videoCheck').forEach(cb => cb.checked = true);
+      }
+
+      function limparSelecao() {
+        document.querySelectorAll('.videoCheck').forEach(cb => cb.checked = false);
+      }
+
+      // Drag and Drop
+      const uploadArea = document.getElementById('uploadArea');
+      
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+      });
+
+      function highlight(e) {
+        uploadArea.classList.add('dragover');
+      }
+
+      function unhighlight(e) {
+        uploadArea.classList.remove('dragover');
+      }
+
+      uploadArea.addEventListener('drop', handleDrop, false);
+
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+      }
+
+      function handleFiles(files) {
+        const formData = new FormData();
+        for (let file of files) {
+          if (file.type.startsWith('video/')) {
+            formData.append('videos', file);
+          }
+        }
+        if (formData.has('videos')) {
+          uploadVideos(formData);
+        }
+      }
+
+      async function uploadVideos(formData) {
+        showLoading();
+        try {
+          const response = await fetch('/api/upload_video', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (data.status === 'success') {
+            showToast('Vídeos enviados com sucesso!');
+            carregarListaVideos();
+          } else {
+            showToast('Erro ao enviar vídeos', 'error');
+          }
+        } catch (error) {
+          showToast('Erro ao enviar vídeos', 'error');
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Carregar e exibir lista de vídeos
+      async function carregarListaVideos() {
+        showLoading();
+        try {
+          const res = await fetch('/api/playlist');
+                const data = await res.json();
+          const lista = document.getElementById('listaVideos');
+          lista.innerHTML = '';
+          const playlistSet = new Set(data.playlist || []);
+          if (data.videos && data.videos.length > 0) {
+            const sortable = new Sortable(lista, {
+              animation: 150,
+              handle: '.drag-handle',
+              onEnd: function() {
+                const novosVideos = Array.from(lista.querySelectorAll('.video-item'))
+                  .map(item => item.dataset.video);
+                salvarPlaylistVideos(novosVideos);
+              }
+            });
+            data.videos.forEach(video => {
+              const checked = playlistSet.has(video) ? 'checked' : '';
+              const inPlaylist = playlistSet.has(video);
+              const borderColor = inPlaylist ? '2px solid #43ea7f' : '2px solid #e74c3c';
+              const bgColor = inPlaylist ? 'rgba(67,234,127,0.08)' : 'rgba(231,76,60,0.08)';
+              const item = document.createElement('div');
+              item.className = 'video-item';
+              item.dataset.video = video;
+              item.style.border = borderColor;
+              item.style.background = bgColor;
+              item.innerHTML = `
+                <div class="drag-handle">
+                  <i class="fas fa-grip-vertical"></i>
+                </div>
+                <div class="video-info">
+                  <video class="video-preview" src="/static/videos/${video}" muted onclick="expandirVideoPreview(this)"></video>
+                  <div>${video}</div>
+                </div>
+                <div class="video-actions">
+                  <input type="checkbox" class="videoCheck" value="${video}" ${checked}>
+                  <button class="btn btn-sm btn-danger ms-2" onclick="removerVideoDaPlaylist('${video}')"><i class='fas fa-trash'></i></button>
+                </div>
+              `;
+              lista.appendChild(item);
+            });
+          } else {
+            lista.innerHTML = '<div class="alert alert-info">Nenhum vídeo disponível.</div>';
+          }
+          const ul = document.getElementById('playlistAtual');
+          ul.innerHTML = '';
+          if (data.playlist && data.playlist.length > 0) {
+            data.playlist.forEach((video, i) => {
+              const li = document.createElement('li');
+              li.className = 'list-group-item d-flex align-items-center';
+              li.innerHTML = `<span class='me-2 fw-bold'>${i+1}.</span> <span class='flex-fill'>${video}</span>`;
+              ul.appendChild(li);
+            });
+          } else {
+            ul.innerHTML = '<li class="list-group-item text-muted">Nenhum vídeo na playlist</li>';
+          }
+        } catch (error) {
+          showToast('Erro ao carregar vídeos', 'error');
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Função para remover vídeo da playlist e do disco
+      async function removerVideoDaPlaylist(video) {
+        // Remove da playlist
+        const checkboxes = Array.from(document.querySelectorAll('.videoCheck'));
+        const selecionados = checkboxes.filter(cb => cb.value !== video && cb.checked).map(cb => cb.value);
+        await salvarPlaylistVideos(selecionados);
+        // Remove do disco
+        try {
+          const res = await fetch(`/api/video/${encodeURIComponent(video)}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.status === 'success') {
+            showToast('Vídeo removido do disco!');
+          } else {
+            showToast(`Erro ao remover vídeo do disco: ${data.message || 'erro desconhecido'}`, 'error');
+          }
+            } catch (e) {
+          showToast('Erro ao remover vídeo do disco: ' + (e.message || e), 'error');
+        }
+        carregarListaVideos();
+      }
+
+      // Salvar playlist
+      async function salvarPlaylistVideos(videos = null) {
+        showLoading();
+        try {
+          const selecionados = videos || Array.from(document.querySelectorAll('.videoCheck:checked')).map(cb => cb.value);
+          const res = await fetch('/api/playlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playlist: selecionados })
+          });
+                const data = await res.json();
+                    if (data.status === 'success') {
+            showToast('Playlist salva com sucesso!');
+                    } else {
+            showToast('Erro ao salvar playlist', 'error');
+          }
+        } catch (error) {
+          showToast('Erro ao salvar playlist', 'error');
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Função para carregar volumes salvos
+      async function carregarVolumes() {
+        try {
+          const response = await fetch('/api/configuracoes/volume');
+          const data = await response.json();
+          if (data.volume_videos !== undefined) {
+            document.getElementById('volumeVideos').value = data.volume_videos;
+            document.getElementById('volumeVideosValue').textContent = data.volume_videos + '%';
+          }
+          if (data.volume_musicas !== undefined) {
+            document.getElementById('volumeMusicas').value = data.volume_musicas;
+            document.getElementById('volumeMusicasValue').textContent = data.volume_musicas + '%';
+          }
+        } catch (error) {
+          showToast('Erro ao carregar volumes', 'error');
+        }
+      }
+
+      // Função para salvar volumes
+      async function salvarVolumes() {
+        const volumeVideos = document.getElementById('volumeVideos').value;
+        const volumeMusicas = document.getElementById('volumeMusicas').value;
+        const response = await fetch('/api/configuracoes/volume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                volume_videos: parseInt(volumeVideos),
+                volume_musicas: parseInt(volumeMusicas)
+            })
+        });
+        if (response.ok) {
+          showToast('Volumes salvos com sucesso!');
+        } else {
+          showToast('Erro ao salvar volumes', 'error');
+        }
+      }
+
+      // Função para upload de novo vídeo
+      async function uploadNovoVideo(input) {
+        if (!input.files.length) return;
+        const formData = new FormData();
+        for (let file of input.files) {
+          formData.append('videos', file);
+        }
+        await uploadVideos(formData);
+        input.value = '';
+      }
+
+      // Função para carregar horários dos vídeos de fundo
+      async function carregarHorarioVideos() {
+        try {
+          const response = await fetch('/api/configuracoes/horario_videos');
+          const data = await response.json();
+          if (data.inicio) document.getElementById('horaInicioVideos').value = data.inicio;
+          if (data.fim) document.getElementById('horaFimVideos').value = data.fim;
+          if (data.dias) {
+            document.querySelectorAll('.diaSemana').forEach(cb => {
+              cb.checked = data.dias.includes(cb.value);
+            });
+          }
+        } catch (error) {
+          showToast('Erro ao carregar horários', 'error');
+        }
+      }
+
+      // Função para atualizar o debug do painel
+      async function atualizarDebugPainel() {
+        try {
+          const res = await fetch('/api/painel_status');
+          const data = await res.json();
+          let playlistStr = (data.playlist || []).map((v,i) => `${i+1}. ${v}`).join('\n');
+          let tempoVideo = data.tempo_restante_video !== undefined ? formatarTempo(data.tempo_restante_video) : '-';
+          let tempoHorario = data.tempo_restante_horario !== undefined ? formatarTempo(data.tempo_restante_horario) : '-';
+          let info = `🎬 Vídeo atual: ${data.video_atual || '-'}\n` +
+            `#️⃣ Índice: ${data.idx}\n` +
+            `📋 Playlist (ordem de reprodução):\n${playlistStr}\n` +
+            `📅 Dia: ${data.dia_atual || '-'}\n` +
+            `🕒 Hora atual: ${data.hora_atual || '-'}\n` +
+            `🕘 Início: ${data.horario && data.horario.inicio ? data.horario.inicio : '-'}\n` +
+            `🕔 Fim: ${data.horario && data.horario.fim ? data.horario.fim : '-'}\n` +
+            `🔊 Volume: ${data.volume_videos !== undefined ? data.volume_videos + '%' : '-'}\n` +
+            `⏳ Tempo restante do vídeo: ${tempoVideo}\n` +
+            `⏰ Tempo restante do horário: ${tempoHorario}\n` +
+            `📡 Status: ${data.status === 'dentro' ? '✅ Dentro do horário' : '❌ Fora do horário'}`;
+          document.getElementById('painelDebugInfo').textContent = info;
+            } catch (e) {
+          document.getElementById('painelDebugInfo').textContent = 'Erro ao consultar status do painel.';
+        }
+      }
+      function formatarTempo(s) {
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+      }
+      setInterval(atualizarDebugPainel, 1000);
+      document.addEventListener('DOMContentLoaded', atualizarDebugPainel);
+
+      // Função para salvar horários dos vídeos de fundo
+      async function salvarHorarioVideos() {
+        const inicio = document.getElementById('horaInicioVideos').value;
+        const fim = document.getElementById('horaFimVideos').value;
+        const dias = Array.from(document.querySelectorAll('.diaSemana:checked')).map(cb => cb.value);
+        try {
+          const response = await fetch('/api/configuracoes/horario_videos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inicio, fim, dias })
+          });
+          const data = await response.json();
+          if (data.status === 'success') {
+            showToast('Horários salvos com sucesso!');
+          } else {
+            showToast('Erro ao salvar horários', 'error');
+          }
+        } catch (error) {
+          showToast('Erro ao salvar horários', 'error');
+        }
+      }
+
+      // Função para carregar e exibir usuários cadastrados
+      let allUsuarios = [];
+      let currentPage = 1;
+      const USERS_PER_PAGE = 10;
+      let currentSearch = '';
+
+      async function carregarUsuarios() {
+        const grid = document.getElementById('usersGrid');
+        grid.innerHTML = '<div class="text-center">Carregando usuários...</div>';
+        try {
+          const res = await fetch('/api/usuarios');
+                const data = await res.json();
+          allUsuarios = data.usuarios || [];
+          currentPage = 1;
+          currentSearch = document.getElementById('userSearch')?.value || '';
+          renderUsuarios();
+            } catch (e) {
+          grid.innerHTML = '<div class="alert alert-danger">Erro ao carregar usuários.</div>';
+        }
+      }
+
+      function renderUsuarios() {
+        const grid = document.getElementById('usersGrid');
+        let usuarios = allUsuarios;
+        if (currentSearch) {
+          const search = currentSearch.toLowerCase();
+          usuarios = usuarios.filter(u =>
+            (u.nome && u.nome.toLowerCase().includes(search)) ||
+            (u.email && u.email.toLowerCase().includes(search))
+          );
+        }
+        const totalPages = Math.ceil(usuarios.length / USERS_PER_PAGE) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * USERS_PER_PAGE;
+        const end = start + USERS_PER_PAGE;
+        const pageUsuarios = usuarios.slice(start, end);
+        grid.innerHTML = '';
+        if (pageUsuarios.length > 0) {
+          pageUsuarios.forEach(usuario => {
+            const card = document.createElement('div');
+            card.className = 'card mb-3';
+            card.innerHTML = `
+              <div class="card-body d-flex align-items-center">
+                <img src="${usuario.foto || '/static/logo.png'}" alt="Foto" class="rounded-circle me-3" style="width:64px;height:64px;object-fit:cover;">
+                <div class="flex-fill">
+                  <h5 class="mb-1">${usuario.nome}</h5>
+                  <div class="text-muted small">${usuario.email}</div>
+                  <div class="text-muted small">${usuario.cargo || ''}</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm me-2" onclick="editarUsuario('${usuario.email}')"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-outline-danger btn-sm" onclick="removerUsuario('${usuario.email}')"><i class="fas fa-trash"></i></button>
+              </div>
+            `;
+            grid.appendChild(card);
+          });
+        } else {
+          grid.innerHTML = '<div class="alert alert-info">Nenhum usuário encontrado.</div>';
+        }
+        renderUserPagination(usuarios.length, totalPages);
+      }
+
+      function renderUserPagination(total, totalPages) {
+        const pag = document.getElementById('userPagination');
+        if (total <= USERS_PER_PAGE) {
+          pag.innerHTML = '';
+          return;
+        }
+        let html = '';
+        html += `<button class="btn btn-sm btn-outline-secondary me-1" ${currentPage === 1 ? 'disabled' : ''} onclick="userGoPage(${currentPage - 1})">Anterior</button>`;
+        html += `<span>Página ${currentPage} de ${totalPages}</span>`;
+        html += `<button class="btn btn-sm btn-outline-secondary ms-1" ${currentPage === totalPages ? 'disabled' : ''} onclick="userGoPage(${currentPage + 1})">Próxima</button>`;
+        pag.innerHTML = html;
+      }
+
+      function userGoPage(page) {
+        currentPage = page;
+        renderUsuarios();
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('userSearch');
+        if (searchInput) {
+          searchInput.addEventListener('input', function() {
+            currentSearch = this.value;
+            currentPage = 1;
+            renderUsuarios();
+          });
+        }
+      });
+
+      // Função para remover usuário
+      async function removerUsuario(email) {
+        if (!confirm('Tem certeza que deseja remover este usuário?')) return;
+        try {
+          const res = await fetch(`/api/usuarios/${encodeURIComponent(email)}`, { method: 'DELETE' });
+            const data = await res.json();
+                    if (data.status === 'success') {
+            showToast('Usuário removido com sucesso!');
+            carregarUsuarios();
+                    } else {
+            showToast(data.message || 'Erro ao remover usuário', 'error');
+          }
+        } catch (e) {
+          showToast('Erro ao remover usuário', 'error');
+        }
+      }
+
+      // Função para editar usuário
+      async function editarUsuario(email) {
+        try {
+          const res = await fetch(`/api/usuarios/${encodeURIComponent(email)}`);
+            const data = await res.json();
+          if (data.status === 'success') {
+            u = data.usuario;
+            // Resetar flags de remoção
+            removerFoto = false;
+            removerMusica = false;
+            removerFundo = false;
+            document.getElementById('userNome').value = u.nome || '';
+            document.getElementById('userEmail').value = u.email || '';
+            document.getElementById('userEmail').disabled = true;
+            document.getElementById('userCargo').value = u.cargo || '';
+            document.getElementById('userTipoFundo').value = u.tipo_fundo || 'imagem';
+            document.getElementById('userPermissoes').value = u.permissoes.acesso_24h ? 'acesso_24h' : 'acesso_restrito';
+            document.getElementById('userHorarioInicio').value = u.permissoes.horario_inicio || '';
+            document.getElementById('userHorarioFim').value = u.permissoes.horario_fim || '';
+            document.getElementById('userFoto').value = '';
+            document.getElementById('userMusica').value = '';
+            document.getElementById('userFundo').value = '';
+            document.getElementById('userModalLabel').textContent = 'Editar Usuário';
+            var userModal = new bootstrap.Modal(document.getElementById('userModal'));
+            userModal.show();
+            // Ao salvar, faz PUT
+            document.getElementById('userForm').onsubmit = async function(ev) {
+              ev.preventDefault();
+              const payload = {
+                nome: document.getElementById('userNome').value,
+                cargo: document.getElementById('userCargo').value,
+                permissoes: {
+                  acesso_24h: document.getElementById('userPermissoes').value === 'acesso_24h',
+                  acesso_restrito: document.getElementById('userPermissoes').value === 'acesso_restrito',
+                  horario_inicio: document.getElementById('userHorarioInicio').value,
+                  horario_fim: document.getElementById('userHorarioFim').value
+                }
+              };
+              // Adiciona flags de remoção se o usuário removeu as mídias
+              if (removerFoto) payload.removerFoto = true;
+              if (removerMusica) payload.removerMusica = true;
+              if (removerFundo) payload.removerFundo = true;
+              try {
+                const res = await fetch(`/api/usuarios/${encodeURIComponent(email)}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                  showToast('Usuário atualizado com sucesso!');
+                  bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                  carregarUsuarios();
+                } else {
+                  showToast(data.message || 'Erro ao atualizar usuário', 'error');
+                }
+              } catch (e) {
+                showToast('Erro ao atualizar usuário', 'error');
+              }
+            };
+            // Atualiza os previews com os valores do perfil do usuário
+            document.getElementById('userFotoPreview').innerHTML = u.foto && u.foto !== 'undefined' && u.foto !== ''
+              ? `<img src="${u.foto}" alt="Foto" class="rounded mb-2" style="max-width:120px;max-height:120px;">`
+              : '<span class="text-muted small">Nenhuma foto cadastrada</span>';
+            document.getElementById('userMusicaPreview').innerHTML = u.musica_personalizada && u.musica_personalizada !== 'undefined' && u.musica_personalizada !== ''
+              ? `<audio controls src="${u.musica_personalizada}" style="width:100%"></audio>`
+              : '<span class="text-muted small">Nenhuma música cadastrada</span>';
+            if (u.fundo_personalizado && u.fundo_personalizado !== 'undefined' && u.fundo_personalizado !== '') {
+              if (u.tipo_fundo === 'video') {
+                document.getElementById('userFundoPreview').innerHTML = `<video controls src="${u.fundo_personalizado}" style="max-width:120px;max-height:120px;"></video>`;
+              } else {
+                document.getElementById('userFundoPreview').innerHTML = `<img src="${u.fundo_personalizado}" alt="Fundo" class="rounded mb-2" style="max-width:120px;max-height:120px;">`;
+              }
+            } else {
+              document.getElementById('userFundoPreview').innerHTML = '<span class="text-muted small">Nenhum fundo cadastrado</span>';
+            }
+            document.getElementById('btnSimularLeitura').onclick = async function() {
+              try {
+                const res = await fetch(`/api/simular_autenticacao/${encodeURIComponent(email)}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                  showToast('Simulação enviada para o painel!');
+                } else {
+                  showToast(data.message || 'Erro ao simular leitura', 'error');
+                }
+            } catch (e) {
+                showToast('Erro ao simular leitura', 'error');
+              }
+            };
+            atualizarBotoesRemocao(u);
+          } else {
+            showToast(data.message || 'Usuário não encontrado', 'error');
+          }
+        } catch (e) {
+          showToast('Erro ao carregar usuário', 'error');
+        }
+      }
+
+      // Inicialização
+      document.addEventListener('DOMContentLoaded', async () => {
+        await carregarHorarioVideos();
+        await carregarListaVideos();
+        await carregarVolumes();
+        carregarUsuarios();
+      });
+
+      function expandirVideoPreview(videoEl) {
+        const overlay = document.getElementById('videoPreviewOverlay');
+        overlay.style.display = 'block';
+        videoEl.classList.add('expanded');
+        videoEl.controls = true;
+        overlay.onclick = () => retrairVideoPreview(videoEl);
+        document.addEventListener('keydown', escListener);
+        function escListener(e) {
+          if (e.key === 'Escape') retrairVideoPreview(videoEl);
+        }
+        videoEl._escListener = escListener;
+      }
+      function retrairVideoPreview(videoEl) {
+        const overlay = document.getElementById('videoPreviewOverlay');
+        overlay.style.display = 'none';
+        videoEl.classList.remove('expanded');
+        videoEl.controls = false;
+        overlay.onclick = null;
+        if (videoEl._escListener) {
+          document.removeEventListener('keydown', videoEl._escListener);
+          delete videoEl._escListener;
+        }
+      }
+
+      function baixarBatPainel() {
+        const a = document.createElement("a");
+        a.href = "/static/abrir_porta.exe";
+        a.download = "abrir_porta.exe";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      function atualizarVolume(valor) {
+        const video = document.getElementById('videoPlayer');
+        if (video) {
+          video.volume = valor / 100;
+          // Salvar volume no servidor
+          fetch('/api/configuracoes/volume', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ volume: parseInt(valor) })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Volume atualizado:', valor);
+          })
+          .catch(error => {
+            console.error('Erro ao atualizar volume:', error);
+          });
+        }
+      }
+
+      // Carregar volume inicial
+      fetch('/api/configuracoes/volume')
+          .then(response => response.json())
+          .then(data => {
+              if (data.volume !== undefined) {
+                  const video = document.getElementById('videoPlayer');
+                  if (video) {
+                      video.volume = data.volume / 100;
+                  }
+              }
+          })
+          .catch(error => {
+              console.error('Erro ao carregar volume:', error);
+          });
+
+      // Adicione ao JS do modal de edição de usuário:
+      // Mostrar/remover botões de remoção conforme houver mídia
+      function atualizarBotoesRemocao(u) {
+        document.getElementById('btnRemoverFoto').style.display = (u.foto && u.foto !== 'undefined' && u.foto !== '') ? '' : 'none';
+        document.getElementById('btnRemoverMusica').style.display = (u.musica_personalizada && u.musica_personalizada !== 'undefined' && u.musica_personalizada !== '') ? '' : 'none';
+        document.getElementById('btnRemoverFundo').style.display = (u.fundo_personalizado && u.fundo_personalizado !== 'undefined' && u.fundo_personalizado !== '') ? '' : 'none';
+      }
+      document.getElementById('btnRemoverFoto').onclick = function() {
+        document.getElementById('userFotoPreview').innerHTML = '<span class="text-muted small">Nenhuma foto cadastrada</span>';
+        document.getElementById('userFoto').value = '';
+        u.foto = null;
+        removerFoto = true;
+        this.style.display = 'none';
+      };
+      document.getElementById('btnRemoverMusica').onclick = function() {
+        document.getElementById('userMusicaPreview').innerHTML = '<span class="text-muted small">Nenhuma música cadastrada</span>';
+        document.getElementById('userMusica').value = '';
+        u.musica_personalizada = null;
+        removerMusica = true;
+        this.style.display = 'none';
+      };
+      document.getElementById('btnRemoverFundo').onclick = function() {
+        document.getElementById('userFundoPreview').innerHTML = '<span class="text-muted small">Nenhum fundo cadastrado</span>';
+        document.getElementById('userFundo').value = '';
+        u.fundo_personalizado = null;
+        removerFundo = true;
+        this.style.display = 'none';
+      };
+
+      document.getElementById('userFoto').addEventListener('change', function() {
+        removerFoto = false;
+        document.getElementById('btnRemoverFoto').style.display = '';
+      });
+      document.getElementById('userMusica').addEventListener('change', function() {
+        removerMusica = false;
+        document.getElementById('btnRemoverMusica').style.display = '';
+      });
+      document.getElementById('userFundo').addEventListener('change', function() {
+        removerFundo = false;
+        document.getElementById('btnRemoverFundo').style.display = '';
+      });
+
+      // Upload de foto já ajustado
+      async function uploadFotoUsuario(email, file, u) {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          const imagem = e.target.result;
+          const res = await fetch(`/api/usuarios/${encodeURIComponent(email)}/foto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imagem })
+          });
+            const data = await res.json();
+          if (data.status === 'success') {
+            u.foto = data.foto; // Atualiza o objeto do usuário!
+            document.getElementById('userFotoPreview').innerHTML = `<img src="${u.foto}" alt="Foto" class="rounded mb-2" style="max-width:120px;max-height:120px;">`;
+            document.getElementById('btnRemoverFoto').style.display = '';
+          } else {
+            showToast(data.message || 'Erro ao enviar foto', 'error');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+      document.getElementById('userFoto').addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          uploadFotoUsuario(document.getElementById('userEmail').value, this.files[0], u);
+        }
+      });
+
+      // Upload de música personalizada
+      async function uploadMusicaUsuario(email, file, u) {
+            const reader = new FileReader();
+        reader.onload = async function(e) {
+          const arquivo = e.target.result;
+          const res = await fetch(`/api/usuarios/${encodeURIComponent(email)}/midia`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo: 'musica', arquivo })
+          });
+                const data = await res.json();
+          if (data.status === 'success') {
+            u.musica_personalizada = data.musica_personalizada;
+            document.getElementById('userMusicaPreview').innerHTML = `<audio controls src="${u.musica_personalizada}" style="width:100%"></audio>`;
+            document.getElementById('btnRemoverMusica').style.display = '';
+          } else {
+            showToast(data.message || 'Erro ao enviar música', 'error');
+          }
+            };
+            reader.readAsDataURL(file);
+      }
+      document.getElementById('userMusica').addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          uploadMusicaUsuario(document.getElementById('userEmail').value, this.files[0], u);
+        }
+      });
+
+      // Upload de fundo personalizado
+      async function uploadFundoUsuario(email, file, u) {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          const arquivo = e.target.result;
+          const tipo_fundo = document.getElementById('userTipoFundo').value;
+          const res = await fetch(`/api/usuarios/${encodeURIComponent(email)}/midia`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo: 'fundo', arquivo, tipo_fundo })
+          });
+          const data = await res.json();
+          if (data.status === 'success') {
+            u.fundo_personalizado = data.fundo_personalizado;
+            u.tipo_fundo = tipo_fundo;
+            if (tipo_fundo === 'video') {
+              document.getElementById('userFundoPreview').innerHTML = `<video controls src="${u.fundo_personalizado}" style="max-width:120px;max-height:120px;"></video>`;
+            } else {
+              document.getElementById('userFundoPreview').innerHTML = `<img src="${u.fundo_personalizado}" alt="Fundo" class="rounded mb-2" style="max-width:120px;max-height:120px;">`;
+            }
+            document.getElementById('btnRemoverFundo').style.display = '';
+          } else {
+            showToast(data.message || 'Erro ao enviar fundo', 'error');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+      document.getElementById('userFundo').addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          uploadFundoUsuario(document.getElementById('userEmail').value, this.files[0], u);
+        }
+      });
+
+      async function checarLicencaParaBotaoPorta() {
+        try {
+          const res = await fetch('/api/licenca_status');
+          const data = await res.json();
+          const btn = document.getElementById('btnAbrirPorta');
+          if (btn) {
+            btn.disabled = data.status !== 'ok';
+          }
+        } catch (e) {}
+      }
+      document.addEventListener('DOMContentLoaded', checarLicencaParaBotaoPorta);
+
+      const btnAbrirPorta = document.getElementById('btnAbrirPorta');
+      if (btnAbrirPorta) {
+        btnAbrirPorta.onclick = async function() {
+          btnAbrirPorta.disabled = true;
+          try {
+            const res = await fetch('/api/porta/abrir', {method:'POST'});
+            const data = await res.json();
+            if (data.message) {
+              showToastPorta('Porta aberta com sucesso!', true);
+            } else {
+              showToastPorta(data.error || 'Erro ao abrir porta!', false);
+            }
+          } catch (e) {
+            showToastPorta('Erro ao abrir porta!', false);
+          }
+          checarLicencaParaBotaoPorta();
+        };
+      }
+
+      function showToastPorta(msg, success=true) {
+        const toast = document.getElementById('toastPorta');
+        const msgBox = document.getElementById('toastPortaMsg');
+        msgBox.textContent = msg;
+        toast.classList.remove('text-bg-success', 'text-bg-danger');
+        toast.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+      }
+    </script>
+</body>
+</html> 

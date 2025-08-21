@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel de Vídeos HDT</title>
+  <link href="https://vjs.zencdn.net/8.3.0/video-js.css" rel="stylesheet" />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <style>
+    body { margin: 0; background: black; }
+    #videoPlayer {
+      width: 100vw;
+      height: 100vh;
+      display: none;
+      object-fit: cover;
+    }
+  </style>
+</head>
+
+<body onclick="entrarEmTelaCheia()">
+  <video id="videoPlayer" class="video-js vjs-default-skin" controls autoplay></video>
+
+  <script src="https://vjs.zencdn.net/8.3.0/video.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/videojs-playlist@5.0.0/dist/videojs-playlist.min.js"></script>
+
+  <script>
+    const player = videojs('videoPlayer');
+    player.volume(1);       // Define volume no máximo
+    player.muted(false);    // Garante que o som esteja ativado
+
+    const videoEl = document.getElementById('videoPlayer');
+
+    let currentConfig = { playlist: [], schedule: {} };
+    let currentPlaylistStr = "";
+    let estavaForaDoHorario = true;
+
+    async function carregarConfiguracao() {
+      try {
+        const res = await fetch('/config?_=' + Date.now());
+        const data = await res.json();
+        currentConfig = data || { playlist: [], schedule: {} };
+
+        const novaPlaylistStr = JSON.stringify(currentConfig.playlist);
+        if (novaPlaylistStr !== currentPlaylistStr && currentConfig.playlist.length > 0) {
+          currentPlaylistStr = novaPlaylistStr;
+          const lista = currentConfig.playlist.map(v => ({ sources: [{ src: v, type: "video/mp4" }] }));
+          player.playlist(lista);
+          player.playlist.autoadvance(0);
+          player.playlist.repeat(true);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar configuração:", err);
+      }
+    }
+
+    function verificarHorario() {
+      const agora = new Date();
+      const diaSemana = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][agora.getDay()];
+      const horario = currentConfig.schedule[diaSemana];
+
+      if (!horario) {
+        aplicarForaDoHorario();
+        return;
+      }
+
+      const [startHour, startMin] = horario.start.split(":").map(Number);
+      const [endHour, endMin] = horario.end.split(":").map(Number);
+
+      const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+      const minutosInicio = startHour * 60 + startMin;
+      const minutosFim = endHour * 60 + endMin;
+
+      const dentroDoHorario = minutosAgora >= minutosInicio && minutosAgora < minutosFim;
+
+      if (dentroDoHorario) {
+        if (estavaForaDoHorario) {
+          player.play().catch(() => {});
+        }
+        videoEl.style.display = 'block';
+        estavaForaDoHorario = false;
+      } else {
+        aplicarForaDoHorario();
+      }
+    }
+
+    function aplicarForaDoHorario() {
+      player.pause();
+      videoEl.style.display = 'none';
+      estavaForaDoHorario = true;
+    }
+
+    async function loopVerificacao() {
+      await carregarConfiguracao();
+      verificarHorario();
+    }
+
+    loopVerificacao();
+    setInterval(() => {
+      loopVerificacao();
+    }, 10000);
+
+    function entrarEmTelaCheia() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    }
+  </script>
+</body>
+</html>

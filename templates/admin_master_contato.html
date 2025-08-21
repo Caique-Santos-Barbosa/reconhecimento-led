@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Personalizar Contato de Licenciamento</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f4f6fa; }
+    .contato-box { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 32px #0001; padding: 2.5rem 2rem; }
+    .contato-box h2 { margin-bottom: 1.5rem; }
+    .contato-box .form-label { font-weight: 500; }
+    .contato-foto-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #25d366; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="contato-box">
+    <h2>Personalizar Contato</h2>
+    {% if mensagem %}<div class="alert alert-success">{{ mensagem }}</div>{% endif %}
+    <form method="post">
+      <div class="mb-3 text-center">
+        {% if contato.foto and contato.foto != 'undefined' and contato.foto != '' and contato.foto != None %}
+          <img src="{{ contato.foto }}" alt="Foto" class="contato-foto-preview" id="fotoPreview">
+        {% else %}
+          <span class="text-muted small">Nenhuma foto cadastrada</span>
+        {% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">URL da Foto</label>
+        <input type="url" class="form-control" name="foto" id="fotoInput" value="{{ contato.foto }}" onchange="document.getElementById('fotoPreview').src = this.value">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Nome</label>
+        <input type="text" class="form-control" name="nome" value="{{ contato.nome }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">WhatsApp</label>
+        <input type="text" class="form-control" name="whatsapp" value="{{ contato.whatsapp }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" value="{{ contato.email }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">GitHub</label>
+        <input type="url" class="form-control" name="github" value="{{ contato.github }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">LinkedIn</label>
+        <input type="url" class="form-control" name="linkedin" value="{{ contato.linkedin }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="observacoes" rows="2">{{ contato.observacoes }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Salvar</button>
+    </form>
+    <a href="/admin_master/painel" class="btn btn-link mt-3">Voltar ao Painel</a>
+  </div>
+</body>
+</html> 

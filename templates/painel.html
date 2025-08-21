@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Acesso</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/painel.css?v=1" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .user-photo {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #painelVideo {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .content-overlay {
+            position: relative;
+            z-index: 1;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <video id="painelVideo" autoplay muted loop></video>
+    
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="content-overlay">
+                    <div class="text-center mb-4">
+                        <img id="userPhoto" src="" alt="Foto do Usuário" class="user-photo">
+                        <h2 id="userName" class="mt-3"></h2>
+                        <p id="userCargo" class="text-muted"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        
+        // Função para sincronizar volume
+        async function sincronizarVolume() {
+            try {
+                const response = await fetch('/api/configuracoes/volume');
+                const data = await response.json();
+                console.log('Recebidas configurações de volume: ', data);
+                const video = document.getElementById('painelVideo');
+                console.log('Elemento de vídeo:', video);
+                if (
+                    video &&
+                    typeof video.volume === 'number' &&
+                    isFinite(data.volume) &&
+                    typeof data.volume === 'number' &&
+                    data.volume >= 0 && data.volume <= 100
+                ) {
+                    const novoVolume = data.volume / 100;
+                    video.volume = novoVolume;
+                    console.log('Volume atualizado para:', data.volume + '%');
+                } else {
+                    console.warn('Volume inválido recebido ou elemento de vídeo não encontrado:', data, video);
+                }
+            } catch (error) {
+                console.error('Erro ao sincronizar volume:', error);
+            }
+        }
+
+        // Só rode a sincronização após o DOM estar pronto
+        document.addEventListener('DOMContentLoaded', function() {
+            setInterval(sincronizarVolume, 5000);
+            sincronizarVolume();
+        });
+
+        // Função para iniciar playlist
+        function iniciarPlaylist() {
+            if (playlist.length === 0) return;
+            let index = 0;
+            const video = document.getElementById('painelVideo');
+            
+            // Função para aplicar volume
+            function aplicarVolume() {
+                sincronizarVolume();
+            }
+
+            video.src = playlist[index];
+            aplicarVolume(); // Aplicar volume ao iniciar
+            video.play();
+
+            // Adicionar eventos para garantir volume consistente
+            video.addEventListener('play', aplicarVolume);
+            video.addEventListener('playing', aplicarVolume);
+            video.addEventListener('loadedmetadata', aplicarVolume);
+            video.addEventListener('canplay', aplicarVolume);
+
+            video.addEventListener('ended', function() {
+                index = (index + 1) % playlist.length;
+                video.src = playlist[index];
+                aplicarVolume(); // Aplicar volume ao trocar vídeo
+                video.play();
+            });
+        }
+
+        // Receber evento de boas-vindas
+        socket.on('boas_vindas', function(data) {
+            console.log('Recebido evento boas_vindas:', data);
+            
+            // Atualizar foto do usuário
+            const userPhoto = document.getElementById('userPhoto');
+            if (data.foto && data.foto !== 'undefined' && data.foto !== '') {
+                userPhoto.src = data.foto + '?v=' + new Date().getTime(); // Adiciona timestamp para evitar cache
+                userPhoto.style.display = 'block';
+            } else {
+                userPhoto.style.display = 'none';
+            }
+
+            // Atualizar nome e cargo
+            document.getElementById('userName').textContent = data.nome;
+            if (data.cargo) {
+                document.getElementById('userCargo').textContent = data.cargo;
+            }
+        });
+    </script>
+</body>
+</html> 

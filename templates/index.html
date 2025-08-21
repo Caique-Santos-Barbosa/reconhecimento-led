@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reconhecimento Facial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .video-feed {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            border-radius: 10px;
+            border: 3px solid rgba(255,255,255,0.2);
+            background: #000;
+        }
+
+        .status-panel {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .status-value {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .status-on {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-off {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-neutral {
+            background: #2196F3;
+            color: white;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+        }
+
+        .register-section {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+
+        .register-section h3 {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        .register-form {
+            display: grid;
+            gap: 15px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        .camera-preview {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: #000;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .known-faces {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .known-faces h3 {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        .faces-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .face-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .face-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .face-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .face-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .face-btn.delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .face-btn.delete:hover {
+            background: #d32f2f;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #4CAF50;
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .notification.info {
+            background: #2196F3;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Sistema de Reconhecimento Facial</h1>
+            <p>Interface Web - Detecção Automática de Proximidade</p>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn success" onclick="startSystem()">
+                ▶️ Iniciar Sistema
+            </button>
+            <button class="control-btn danger" onclick="stopSystem()">
+                ⏹️ Parar Sistema
+            </button>
+            <button class="control-btn" onclick="refreshStatus()">
+                🔄 Atualizar Status
+            </button>
+            <button class="control-btn" onclick="toggleFullscreen()">
+                📱 Tela Cheia
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="video-container">
+                <h3>📹 Câmera em Tempo Real</h3>
+                <img id="videoFeed" class="video-feed" src="/video_feed" alt="Stream de vídeo">
+                <p style="margin-top: 15px; opacity: 0.8;">
+                    Aproxime-se da câmera para ativar o reconhecimento
+                </p>
+            </div>
+
+            <div class="status-panel">
+                <h3>📊 Status do Sistema</h3>
+                <div class="status-item">
+                    <span class="status-label">🔌 Interruptor:</span>
+                    <span id="switchStatus" class="status-value status-off">DESLIGADO</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">📈 Ativações:</span>
+                    <span id="activationCount" class="status-value status-neutral">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">👥 Rostos Conhecidos:</span>
+                    <span id="knownFacesCount" class="status-value status-neutral">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">🎯 Proximidade:</span>
+                    <span id="proximityStatus" class="status-value status-off">INATIVO</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">📱 Sistema:</span>
+                    <span id="systemStatus" class="status-value status-off">PARADO</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">👤 Último Reconhecimento:</span>
+                    <span id="lastRecognition" class="status-value status-neutral">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="register-section">
+            <h3>📝 Registrar Novo Rosto</h3>
+            <form class="register-form" onsubmit="registerFace(event)">
+                <div class="form-group">
+                    <label for="personName">Nome da Pessoa:</label>
+                    <input type="text" id="personName" required placeholder="Digite o nome">
+                </div>
+                <div class="form-group">
+                    <label for="cameraCapture">Capturar Foto:</label>
+                    <video id="cameraCapture" class="camera-preview" autoplay></video>
+                    <button type="button" class="control-btn" onclick="capturePhoto()">
+                        📸 Capturar Foto
+                    </button>
+                </div>
+                <canvas id="photoCanvas" style="display: none;"></canvas>
+                <button type="submit" class="control-btn success">
+                    ✅ Registrar Rosto
+                </button>
+            </form>
+        </div>
+
+        <div class="known-faces">
+            <h3>👥 Rostos Registrados</h3>
+            <div id="facesList" class="faces-list">
+                <p style="text-align: center; opacity: 0.7;">Carregando...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let capturedImage = null;
+        let statusInterval;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            loadKnownFaces();
+            startStatusUpdates();
+            initializeCamera();
+        });
+
+        // Funções do sistema
+        async function startSystem() {
+            try {
+                const response = await fetch('/api/start');
+                const data = await response.json();
+                showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+                if (data.status === 'success') {
+                    refreshStatus();
+                }
+            } catch (error) {
+                showNotification('Erro ao iniciar sistema', 'error');
+            }
+        }
+
+        async function stopSystem() {
+            try {
+                const response = await fetch('/api/stop');
+                const data = await response.json();
+                showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+                if (data.status === 'success') {
+                    refreshStatus();
+                }
+            } catch (error) {
+                showNotification('Erro ao parar sistema', 'error');
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                updateStatusDisplay(data);
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+            }
+        }
+
+        function updateStatusDisplay(data) {
+            document.getElementById('switchStatus').textContent = data.switch_status ? 'LIGADO' : 'DESLIGADO';
+            document.getElementById('switchStatus').className = `status-value ${data.switch_status ? 'status-on' : 'status-off'}`;
+            
+            document.getElementById('activationCount').textContent = data.activation_count;
+            document.getElementById('knownFacesCount').textContent = data.known_faces_count;
+            
+            document.getElementById('proximityStatus').textContent = data.proximity_detected ? 'ATIVO' : 'INATIVO';
+            document.getElementById('proximityStatus').className = `status-value ${data.proximity_detected ? 'status-on' : 'status-off'}`;
+            
+            document.getElementById('systemStatus').textContent = data.is_running ? 'RODANDO' : 'PARADO';
+            document.getElementById('systemStatus').className = `status-value ${data.is_running ? 'status-on' : 'status-off'}`;
+            
+            document.getElementById('lastRecognition').textContent = data.last_recognition || '-';
+        }
+
+        function startStatusUpdates() {
+            statusInterval = setInterval(refreshStatus, 2000);
+        }
+
+        // Funções de registro de rostos
+        async function loadKnownFaces() {
+            try {
+                const response = await fetch('/api/known_faces');
+                const data = await response.json();
+                displayKnownFaces(data.faces);
+            } catch (error) {
+                console.error('Erro ao carregar rostos:', error);
+            }
+        }
+
+        function displayKnownFaces(faces) {
+            const container = document.getElementById('facesList');
+            if (faces.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nenhum rosto registrado</p>';
+                return;
+            }
+
+            container.innerHTML = faces.map(face => `
+                <div class="face-item">
+                    <div class="face-name">${face}</div>
+                    <div class="face-actions">
+                        <button class="face-btn delete" onclick="deleteFace('${face}')">
+                            🗑️ Remover
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function registerFace(event) {
+            event.preventDefault();
+            
+            if (!capturedImage) {
+                showNotification('Capture uma foto primeiro', 'error');
+                return;
+            }
+
+            const name = document.getElementById('personName').value.trim();
+            if (!name) {
+                showNotification('Digite um nome', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/register_face', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        image: capturedImage
+                    })
+                });
+
+                const data = await response.json();
+                showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+                
+                if (data.status === 'success') {
+                    document.getElementById('personName').value = '';
+                    capturedImage = null;
+                    loadKnownFaces();
+                    refreshStatus();
+                }
+            } catch (error) {
+                showNotification('Erro ao registrar rosto', 'error');
+            }
+        }
+
+        // Funções da câmera
+        async function initializeCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 300, 
+                        height: 225,
+                        facingMode: 'user'
+                    } 
+                });
+                const video = document.getElementById('cameraCapture');
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Erro ao acessar câmera:', error);
+                showNotification('Erro ao acessar câmera', 'error');
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraCapture');
+            const canvas = document.getElementById('photoCanvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+
+            capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+            showNotification('Foto capturada com sucesso!', 'success');
+        }
+
+        // Funções utilitárias
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        async function deleteFace(name) {
+            if (confirm(`Tem certeza que deseja remover o rosto de "${name}"?`)) {
+                // Implementar remoção via API
+                showNotification('Funcionalidade de remoção será implementada', 'info');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F11') {
+                event.preventDefault();
+                toggleFullscreen();
+            }
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', function() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+        });
+    </script>
+</body>
+</html> 

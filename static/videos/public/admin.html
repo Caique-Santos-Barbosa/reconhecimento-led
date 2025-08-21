@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Painel de Vídeos</title>
+  <style>
+    body { font-family: sans-serif; background: #f2f2f2; padding: 20px; }
+    .section { background: #fff; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .playlist-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .playlist-item span { flex: 1; }
+    .remove-btn { background: red; color: white; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+    .dias-toggle label {
+      display: inline-block;
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin: 5px 5px 0 0;
+      cursor: pointer;
+    }
+    .dias-toggle input[type="checkbox"] {
+      display: none;
+    }
+    .dias-toggle input[type="checkbox"]:checked + span {
+      background: #4A90E2;
+      color: white;
+      border-color: #4A90E2;
+    }
+    .confirmacao { color: green; font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Admin - Painel de Vídeos</h1>
+
+  <div class="section">
+    <form id="uploadForm">
+      <label>Enviar vídeos (.mp4):</label>
+      <input type="file" name="videos" multiple accept="video/mp4" />
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  <div class="section">
+    <h3>Selecionar vídeos para a playlist:</h3>
+    <form id="videoOptions"></form>
+  </div>
+
+  <div class="section">
+    <h3>Playlist (ordem de reprodução)</h3>
+    <div id="playlist"></div>
+  </div>
+
+  <div class="section">
+    <h3>Agendamento</h3>
+    <label><input type="checkbox" id="mesmoHorario"> Usar mesmo horário para todos os dias</label><br />
+    Início: <input type="time" id="global_start"> Fim: <input type="time" id="global_end">
+    <div class="dias-toggle" id="diasToggle"></div>
+    <div id="horariosIndividuais"></div>
+    <button onclick="salvarPlaylist()" style="margin-top:15px">Salvar Configuração</button>
+    <div class="confirmacao" id="msgConfirmacao"></div>
+  </div>
+
+  <script>
+    const dias = [
+      { key: "sunday", label: "Dom" },
+      { key: "monday", label: "Seg" },
+      { key: "tuesday", label: "Ter" },
+      { key: "wednesday", label: "Qua" },
+      { key: "thursday", label: "Qui" },
+      { key: "friday", label: "Sex" },
+      { key: "saturday", label: "Sáb" }
+    ];
+
+    let selectedPlaylist = [];
+
+    function montarDias(configSchedule = {}) {
+      const toggle = document.getElementById("diasToggle");
+      const horarios = document.getElementById("horariosIndividuais");
+      dias.forEach(d => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" name="dia" value="${d.key}" id="cb_${d.key}"><span>${d.label}</span>`;
+        toggle.appendChild(label);
+
+        const div = document.createElement("div");
+        div.innerHTML = `${d.label}: Início <input type="time" name="${d.key}_start"> Fim <input type="time" name="${d.key}_end">`;
+        horarios.appendChild(div);
+
+        if (configSchedule[d.key]) {
+          document.getElementById(`cb_${d.key}`).checked = true;
+          div.querySelector(`[name='${d.key}_start']`).value = configSchedule[d.key].start;
+          div.querySelector(`[name='${d.key}_end']`).value = configSchedule[d.key].end;
+        }
+      });
+    }
+
+    async function loadVideos(config = {}) {
+      const res = await fetch('/videos-list');
+      const videos = await res.json();
+      const form = document.getElementById('videoOptions');
+      form.innerHTML = '';
+      selectedPlaylist = (config.playlist || []).map(p => p.replace('videos/', ''));
+
+      videos.forEach(v => {
+        const label = document.createElement('label');
+        const isChecked = selectedPlaylist.includes(v);
+        label.innerHTML = `<input type="checkbox" name="playlist" value="${v}" ${isChecked ? 'checked' : ''} onchange="togglePlaylist(this)"> ${v}`;
+        form.appendChild(label);
+        form.appendChild(document.createElement('br'));
+      });
+
+      renderPlaylist();
+    }
+
+    function togglePlaylist(checkbox) {
+      const value = checkbox.value;
+      if (checkbox.checked) {
+        if (!selectedPlaylist.includes(value)) selectedPlaylist.push(value);
+      } else {
+        selectedPlaylist = selectedPlaylist.filter(v => v !== value);
+      }
+      renderPlaylist();
+    }
+
+    function renderPlaylist() {
+      const container = document.getElementById('playlist');
+      container.innerHTML = '';
+      selectedPlaylist.forEach((v, i) => {
+        const div = document.createElement('div');
+        div.className = 'playlist-item';
+        div.innerHTML = `<span>${i + 1}. ${v}</span><button class="remove-btn" onclick="removeFromPlaylist('${v.replace(/'/g, "\'")}')">❌</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function removeFromPlaylist(name) {
+      selectedPlaylist = selectedPlaylist.filter(v => v !== name);
+      const checkbox = document.querySelector(`input[name=playlist][value='${name}']`);
+      if (checkbox) checkbox.checked = false;
+      renderPlaylist();
+    }
+
+    function salvarPlaylist() {
+      const schedule = {};
+      const usarMesmoHorario = document.getElementById('mesmoHorario').checked;
+      const globalStart = document.getElementById('global_start').value;
+      const globalEnd = document.getElementById('global_end').value;
+      const diasSelecionados = Array.from(document.querySelectorAll('input[name=dia]:checked')).map(e => e.value);
+
+      diasSelecionados.forEach(dia => {
+        const start = usarMesmoHorario ? globalStart : document.querySelector(`[name=${dia}_start]`).value;
+        const end = usarMesmoHorario ? globalEnd : document.querySelector(`[name=${dia}_end]`).value;
+        if (start && end) {
+          schedule[dia] = { start, end };
+        }
+      });
+
+      const payload = {
+        playlist: selectedPlaylist.map(v => 'videos/' + v),
+        schedule: schedule
+      };
+
+      fetch('/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        document.getElementById("msgConfirmacao").textContent = "✅ Configuração salva com sucesso!";
+        setTimeout(() => document.getElementById("msgConfirmacao").textContent = "", 4000);
+      });
+    }
+
+    document.getElementById('uploadForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      await fetch('/upload', { method: 'POST', body: formData });
+      alert('Upload concluído');
+      const config = await fetch('/config').then(res => res.json());
+      loadVideos(config);
+    };
+
+    async function init() {
+      const config = await fetch('/config').then(res => res.json());
+      montarDias(config.schedule);
+      loadVideos(config);
+    }
+
+    init();
+  </script>
+</body>
+</html>

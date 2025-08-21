@@ -1,0 +1,17 @@
+{
+  "nome": "Caique Santos Barbosa",
+  "email": "caique.santos@hdt.energy",
+  "cargo": "Analista De TI Pleno",
+  "foto": "/static/users/caique.santos@hdt.energy/foto.jpg",
+  "musica_personalizada": null,
+  "fundo_personalizado": null,
+  "tipo_fundo": "imagem",
+  "data_cadastro": "2025-06-13 12:55:57",
+  "ultimo_acesso": null,
+  "permissoes": {
+    "acesso_24h": true,
+    "acesso_restrito": false,
+    "horario_inicio": "08:00",
+    "horario_fim": "18:00"
+  }
+}

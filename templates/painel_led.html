@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel de LED - HDT</title>
+  <style>
+    body { margin: 0; background: #000 !important; overflow: hidden; font-family: 'Roboto', Arial, sans-serif; }
+    #videoArea { width: 100vw; height: 100vh; position: relative; }
+    video { width: 100vw; height: 100vh; object-fit: cover; border-radius: 0; box-shadow: 0 0 32px 4px #0004; }
+    #overlay {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(30,40,80,0.85); color: #fff; font-size: 2.8vw; z-index: 10; display: none;
+      border-radius: 0; box-shadow: 0 0 32px 4px #0008;
+      animation: fadein 0.5s;
+    }
+    #overlay img { max-width: 18vw; max-height: 36vh; border-radius: 0; margin-bottom: 2vh; box-shadow: 0 4px 24px #0006; border: 4px solid #43ea7f; background: #fff; }
+    #mensagem {
+      background: rgba(67,234,127,0.12); padding: 24px 48px; border-radius: 0; font-size: 2.5vw; font-weight: 700; color: #43ea7f; box-shadow: 0 2px 12px #0003; text-align: center; margin-top: 12px;
+    }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+    #fotoPessoa {
+        width: 370px !important;
+        height: 370px !important;
+        object-fit: cover !important;
+        border-radius: 50% !important;
+        border: 4px solid #fff !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+        background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="videoArea">
+    <video id="painelVideo" autoplay muted></video>
+    <div id="overlay">
+      <img id="fotoPessoa" src="" alt="Foto" style="display:none;" />
+      <div id="mensagem"></div>
+    </div>
+  </div>
+  <audio id="audioPlayer" style="display: none;"></audio>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    const video = document.getElementById('painelVideo');
+    const overlay = document.getElementById('overlay');
+    const mensagem = document.getElementById('mensagem');
+    const fotoPessoa = document.getElementById('fotoPessoa');
+    const audioPlayer = document.getElementById('audioPlayer');
+    let playlist = [];
+    let idx = 0;
+    let fundoPersonalizado = null;
+    let fundoTipo = null;
+    let ultimoUsuario = null;
+    let volumeConfig = { volume_videos: 100, volume_musicas: 100 };
+    let horarioVideos = { inicio: '', fim: '', dias: [], feriados: '' };
+    // Controle em tempo real do horário dos vídeos
+    let estavaForaDoHorario = false;
+
+    // Configurar o player de áudio
+    audioPlayer.volume = 1.0;
+    audioPlayer.muted = false;
+
+    // Configurar o vídeo de fundo
+    video.volume = 1.0;
+    video.muted = false;
+
+    // Receber configurações de volume
+    socket.on('volume_config', config => {
+        console.log('Recebidas configurações de volume:', config);
+        volumeConfig = config;
+        // Aplicar volumes
+        video.volume = volumeConfig.volume_videos / 100;
+        audioPlayer.volume = volumeConfig.volume_musicas / 100;
+        
+        // Se houver um fundo personalizado em vídeo, aplicar o volume também
+        if (fundoPersonalizado && fundoTipo === 'video') {
+            fundoPersonalizado.volume = volumeConfig.volume_videos / 100;
+        }
+    });
+
+    async function carregarPlaylist() {
+      const res = await fetch('/api/playlist');
+      const data = await res.json();
+      playlist = data.playlist || [];
+      if (playlist.length > 0) {
+        idx = 0;
+        tocarVideoAtual();
+      } else {
+        console.log('Nenhum vídeo na playlist');
+      }
+    }
+
+    // Buscar configurações de horário dos vídeos
+    async function carregarHorarioVideos() {
+      try {
+        const res = await fetch('/api/configuracoes/horario_videos');
+        horarioVideos = await res.json();
+      } catch (e) {
+        horarioVideos = { inicio: '', fim: '', dias: [], feriados: '' };
+      }
+    }
+
+    // Função para checar se pode exibir vídeo e mostrar debug
+    function podeExibirVideo() {
+      if (!horarioVideos.inicio || !horarioVideos.fim || !horarioVideos.dias.length) {
+        return true;
+      }
+      const agora = new Date();
+      const hora = agora.toTimeString().slice(0,5);
+      const diaSemana = agora.getDay().toString();
+      if (!horarioVideos.dias.includes(diaSemana)) {
+        return false;
+      }
+      if (hora < horarioVideos.inicio) {
+        return false;
+      }
+      if (hora > horarioVideos.fim) {
+        return false;
+      }
+      return true;
+    }
+
+    // Sobrescrever tocarVideoAtual para respeitar as regras
+    function tocarVideoAtual() {
+      if (!podeExibirVideo() || playlist.length === 0) {
+        video.pause();
+        video.src = '';
+        return;
+      }
+      video.src = `/static/videos/${playlist[idx]}`;
+      video.volume = 1.0;
+      video.muted = false;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          setTimeout(() => {
+            video.play().catch(e => {});
+          }, 100);
+        });
+      }
+    }
+
+    video.onended = function() {
+      idx = (idx + 1) % playlist.length;
+      tocarVideoAtual();
+    };
+
+    // Carregar configurações ao iniciar
+    document.addEventListener('DOMContentLoaded', async () => {
+      await carregarHorarioVideos();
+      await carregarPlaylist();
+      tocarVideoAtual();
+    });
+
+    // WebSocket para boas-vindas
+    function saudacao() {
+      const h = new Date().getHours();
+      if (h < 12) return 'Bom dia';
+      if (h < 18) return 'Boa tarde';
+      return 'Boa noite';
+    }
+
+    socket.on('boas_vindas', async data => {
+      console.log('Recebido evento boas_vindas:', data);
+      
+      // Verificar se é o mesmo usuário
+      if (ultimoUsuario === data.nome) {
+        console.log('Usuário já reconhecido, ignorando evento');
+        return;
+      }
+      ultimoUsuario = data.nome;
+      
+      // Pausar o áudio do vídeo de fundo
+      video.muted = true;
+      
+      // Limpar elementos anteriores
+      if (audioPlayer.src) {
+        audioPlayer.pause();
+        audioPlayer.src = '';
+      }
+      if (fundoPersonalizado) {
+        fundoPersonalizado.pause && fundoPersonalizado.pause();
+        fundoPersonalizado.remove();
+        fundoPersonalizado = null;
+      }
+
+      // Configurar mensagem e foto
+      mensagem.textContent = `${saudacao()}! Seja bem-vindo, ${data.nome}!`;
+      mensagem.style.display = 'block';
+      
+      if (data.foto && data.foto !== 'undefined' && data.foto !== '') {
+        fotoPessoa.src = data.foto;
+        fotoPessoa.style.display = 'block';
+      } else {
+        fotoPessoa.style.display = 'none';
+      }
+
+      // Música personalizada
+      if (data.musica && data.musica !== 'undefined' && data.musica !== '') {
+        console.log('Tentando reproduzir música:', data.musica);
+        try {
+          audioPlayer.src = data.musica;
+          audioPlayer.load();
+          
+          // Tentar reproduzir quando o áudio estiver pronto
+          audioPlayer.oncanplaythrough = () => {
+            console.log('Áudio pronto para reprodução');
+            const playPromise = audioPlayer.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                console.log('Áudio iniciado com sucesso');
+              }).catch(error => {
+                console.error('Erro ao iniciar reprodução:', error);
+                // Tentar reproduzir novamente após um pequeno delay
+                setTimeout(() => {
+                  audioPlayer.play().catch(e => console.error('Erro na segunda tentativa:', e));
+                }, 100);
+              });
+            }
+          };
+        } catch (e) {
+          console.error('Erro ao configurar áudio:', e);
+        }
+      } else {
+        console.log('Nenhuma música personalizada disponível');
+      }
+
+      // Fundo personalizado
+      if (data.fundo && data.fundo !== 'undefined' && data.fundo !== '') {
+        fundoTipo = data.tipo_fundo;
+        if (fundoTipo === 'video') {
+          fundoPersonalizado = document.createElement('video');
+          fundoPersonalizado.src = data.fundo;
+          fundoPersonalizado.autoplay = true;
+          fundoPersonalizado.loop = false;
+          fundoPersonalizado.style.position = 'fixed';
+          fundoPersonalizado.style.top = '0';
+          fundoPersonalizado.style.left = '0';
+          fundoPersonalizado.style.width = '100vw';
+          fundoPersonalizado.style.height = '100vh';
+          fundoPersonalizado.style.zIndex = '100';
+          fundoPersonalizado.style.objectFit = 'cover';
+          document.body.appendChild(fundoPersonalizado);
+          fundoPersonalizado.onended = () => { fundoPersonalizado.remove(); };
+        } else {
+          fundoPersonalizado = document.createElement('img');
+          fundoPersonalizado.src = data.fundo;
+          fundoPersonalizado.style.position = 'fixed';
+          fundoPersonalizado.style.top = '0';
+          fundoPersonalizado.style.left = '0';
+          fundoPersonalizado.style.width = '100vw';
+          fundoPersonalizado.style.height = '100vh';
+          fundoPersonalizado.style.zIndex = '100';
+          fundoPersonalizado.style.objectFit = 'cover';
+          document.body.appendChild(fundoPersonalizado);
+        }
+      } else {
+        console.log('Nenhum fundo personalizado disponível');
+      }
+
+      // Mostrar overlay
+      overlay.style.display = 'flex';
+      overlay.style.zIndex = '200';
+
+      // Remover elementos após 10 segundos
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        if (fundoPersonalizado) {
+          fundoPersonalizado.pause && fundoPersonalizado.pause();
+          fundoPersonalizado.remove();
+          fundoPersonalizado = null;
+        }
+        if (audioPlayer.src) {
+          audioPlayer.pause();
+          audioPlayer.src = '';
+        }
+        // Restaurar o áudio do vídeo de fundo
+        video.muted = false;
+        ultimoUsuario = null; // Resetar o último usuário após o timeout
+      }, 10000);
+    });
+
+    // WebSocket para atualização em tempo real do horário dos vídeos
+    socket.on('horario_videos_config', config => {
+      horarioVideos = config;
+      tocarVideoAtual();
+    });
+
+    // WebSocket para atualização em tempo real da playlist
+    socket.on('playlist_updated', data => {
+      playlist = data.playlist || [];
+      if (playlist.length > 0) {
+        idx = 0;
+        tocarVideoAtual();
+      } else {
+        console.log('Nenhum vídeo na playlist');
+      }
+    });
+
+    // Controle em tempo real do horário dos vídeos
+    setInterval(() => {
+      const podeExibir = podeExibirVideo();
+      if (!podeExibir && !estavaForaDoHorario) {
+        // Saiu do horário permitido
+        video.pause();
+        video.style.display = 'none';
+        estavaForaDoHorario = true;
+      } else if (podeExibir && estavaForaDoHorario) {
+        // Voltou para o horário permitido
+        video.style.display = 'block';
+        tocarVideoAtual();
+        estavaForaDoHorario = false;
+      }
+    }, 10000);
+
+    // Função para atualizar status global do painel
+    async function atualizarPainelStatus(extra = {}) {
+      const status = {
+        video_atual: playlist[idx] || null,
+        idx: idx,
+        playlist: playlist,
+        horario: horarioVideos,
+        volume_videos: volumeConfig.volume_videos,
+        status: podeExibirVideo() ? 'dentro' : 'fora',
+        tempo_restante_video: video.duration ? Math.max(0, Math.floor(video.duration - video.currentTime)) : 0,
+        tempo_restante_horario: (() => {
+          if (!horarioVideos.fim) return 0;
+          const agora = new Date();
+          const [h, m] = horarioVideos.fim.split(':');
+          const fim = new Date(agora);
+          fim.setHours(parseInt(h), parseInt(m), 0, 0);
+          return Math.max(0, Math.floor((fim - agora) / 1000));
+        })(),
+        dia_atual: new Date().toLocaleDateString('pt-BR', { weekday: 'long' }),
+        hora_atual: new Date().toLocaleTimeString('pt-BR'),
+        ...extra
+      };
+      try {
+        await fetch('/api/painel_status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(status)
+        });
+      } catch (e) {}
+    }
+
+    // Atualizar status em eventos relevantes
+    video.addEventListener('timeupdate', atualizarPainelStatus);
+    video.addEventListener('play', atualizarPainelStatus);
+    video.addEventListener('pause', atualizarPainelStatus);
+    video.addEventListener('ended', atualizarPainelStatus);
+    socket.on('volume_config', config => { atualizarPainelStatus(); });
+    socket.on('playlist_updated', data => { atualizarPainelStatus(); });
+    socket.on('horario_videos_config', config => { atualizarPainelStatus(); });
+    document.addEventListener('DOMContentLoaded', () => { setInterval(atualizarPainelStatus, 1000); });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const video = document.getElementById('painelVideo');
+      if (video) {
+        video.currentTime = 0;
+        video.play().catch(() => {
+          // Se o navegador bloquear, não faz nada (sem overlay)
+        });
+      }
+    });
+
+    socket.on('licenca_bloqueada', function(data) {
+      location.reload();
+    });
+    socket.on('licenca_desbloqueada', function(data) {
+      // Remove mensagem de bloqueio se existir
+      const bloqueioBox = document.querySelector('.bloqueado-box');
+      if (bloqueioBox) bloqueioBox.remove();
+      // Tenta dar play no vídeo ao desbloquear
+      const video = document.getElementById('painelVideo');
+      if (video) {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      }
+    });
+
+    // Verificação em tempo real da licença
+    async function checarLicencaLoop() {
+      try {
+        const res = await fetch('/api/licenca_status');
+        const data = await res.json();
+        if (data.status !== 'ok') {
+          alert(data.mensagem || 'Licença expirada ou sistema bloqueado!');
+          location.reload();
+        }
+      } catch (e) {}
+      setTimeout(checarLicencaLoop, 2000);
+    }
+    checarLicencaLoop();
+
+    // Sincronização periódica de volume
+    async function sincronizarVolume() {
+      try {
+        const res = await fetch('/api/configuracoes/volume');
+        const config = await res.json();
+        if (config.volume_videos !== undefined) {
+          video.volume = config.volume_videos / 100;
+        }
+        if (audioPlayer && config.volume_musicas !== undefined) {
+          audioPlayer.volume = config.volume_musicas / 100;
+        }
+        if (fundoPersonalizado && fundoTipo === 'video' && config.volume_videos !== undefined) {
+          fundoPersonalizado.volume = config.volume_videos / 100;
+        }
+      } catch (e) {
+        console.warn('Erro ao sincronizar volume:', e);
+      }
+    }
+    setInterval(sincronizarVolume, 100);
+    sincronizarVolume();
+  </script>
+</body>
+</html> 
