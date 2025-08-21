@@ -1,0 +1,21 @@
+# Configurações de Build para Render
+# Este arquivo contém configurações para otimizar o processo de build
+
+# Variáveis de ambiente para otimização
+PIP_NO_CACHE_DIR=1
+PIP_DISABLE_PIP_VERSION_CHECK=1
+PYTHONDONTWRITEBYTECODE=1
+
+# Configurações de memória
+export PYTHONMALLOC=malloc
+export PYTHONDEVMODE=0
+
+# Ordem de instalação otimizada
+# 1. Dependências de build
+# 2. Bibliotecas base
+# 3. Machine Learning (pré-compiladas)
+# 4. Aplicação
+
+# Comandos de build recomendados:
+# pip install --upgrade pip setuptools wheel
+# pip install --no-cache-dir --prefer-binary -r requirements_render.txt 

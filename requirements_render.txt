@@ -1,14 +1,21 @@
 setuptools>=65.0.0
 wheel>=0.38.0
 pip>=23.0.0
-opencv-python
-face-recognition
+
+# Bibliotecas base
 numpy
 Pillow
-cmake
-pyserial
 requests
-flask-socketio
 flask
+flask-socketio
 gunicorn
-eventlet 
+eventlet
+
+# Machine Learning - versões pré-compiladas
+opencv-python-headless
+dlib-binary
+face-recognition-models
+
+# Outras dependências
+cmake
+pyserial 
