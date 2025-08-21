@@ -1,29 +1,19 @@
 [build-system]
-requires = ["setuptools>=65.0.0", "wheel>=0.38.0", "pip>=23.0.0"]
+requires = ["setuptools>=65.0.0", "wheel>=0.38.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "facial-led-app"
-version = "1.1.3"
-description = "Sistema de Reconhecimento Facial com Painel LED"
-requires-python = ">=3.11,<3.12"
+version = "1.2.1"
+description = "Sistema de Reconhecimento Facial com Painel LED (Versão Render)"
+requires-python = ">=3.11"
 dependencies = [
-    "opencv-python-headless",
-    "dlib-binary",
-    "face-recognition-models",
+    "flask",
+    "flask-socketio",
+    "gunicorn",
+    "eventlet",
     "numpy",
     "Pillow",
-    "cmake",
-    "pyserial",
     "requests",
-    "flask-socketio",
-    "flask",
-    "gunicorn",
-    "eventlet"
-]
-
-[tool.setuptools]
-packages = ["app"]
-
-[tool.setuptools.package-data]
-"*" = ["*.json", "*.txt", "*.md"] 
+    "pyserial"
+] 
